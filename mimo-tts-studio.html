@@ -1,0 +1,2881 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 智能语音合成工作台</title>
+<style>
+:root {
+  --bg: #f5f5f7; --bg2: #fff; --bg3: #e8e8ed; --text: #1d1d1f; --text2: #6e6e73;
+  --border: #d2d2d7; --accent: #0071e3; --accent2: #0077ed; --danger: #ff3b30;
+  --success: #34c759; --shadow: rgba(0,0,0,.08); --card: #fff;
+  --tag-bg: #e8e8ed; --tag-text: #1d1d1f;
+}
+[data-theme="dark"] {
+  --bg: #1c1c1e; --bg2: #2c2c2e; --bg3: #3a3a3c; --text: #f5f5f7; --text2: #98989d;
+  --border: #48484a; --accent: #0a84ff; --accent2: #409cff; --danger: #ff453a;
+  --success: #30d158; --shadow: rgba(0,0,0,.3); --card: #2c2c2e;
+  --tag-bg: #3a3a3c; --tag-text: #f5f5f7;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+/* Header */
+.header { display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: var(--bg2); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100; flex-wrap: wrap; }
+.header h1 { font-size: 18px; font-weight: 600; white-space: nowrap; }
+.header .api-section { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 300px; }
+.header input[type="password"] { flex: 1; min-width: 200px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 13px; }
+.header .btn-group { display: flex; gap: 8px; }
+
+/* Buttons */
+.btn { padding: 6px 16px; border: none; border-radius: 8px; font-size: 13px; font-weight: 500; transition: all .15s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: var(--accent2); }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+.btn-secondary { background: var(--bg3); color: var(--text); }
+.btn-secondary:hover { opacity: .8; }
+.btn-danger { background: var(--danger); color: #fff; }
+.btn-sm { padding: 4px 10px; font-size: 12px; }
+.btn-icon { background: none; border: none; color: var(--text2); font-size: 18px; padding: 4px 8px; border-radius: 6px; }
+.btn-icon:hover { background: var(--bg3); }
+
+/* Tabs */
+.tabs { display: flex; gap: 0; background: var(--bg2); border-bottom: 1px solid var(--border); padding: 0 24px; overflow-x: auto; }
+.tab { padding: 10px 20px; font-size: 14px; font-weight: 500; color: var(--text2); border: none; background: none; border-bottom: 2px solid transparent; white-space: nowrap; transition: all .15s; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Layout */
+.container { display: flex; height: calc(100vh - 100px); }
+.main { flex: 1; overflow-y: auto; padding: 24px; }
+.sidebar { width: 280px; border-left: 1px solid var(--border); background: var(--bg2); overflow-y: auto; display: none; }
+.sidebar.open { display: block; }
+
+/* Cards */
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 3px var(--shadow); }
+.card h3 { font-size: 15px; margin-bottom: 12px; }
+
+/* Form elements */
+label { display: block; font-size: 13px; font-weight: 500; color: var(--text2); margin-bottom: 4px; }
+textarea, input[type="text"], select { width: 100%; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); color: var(--text); font-size: 14px; resize: vertical; }
+textarea:focus, input[type="text"]:focus, select:focus { outline: none; border-color: var(--accent); }
+.row { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+.row > * { flex: 1; min-width: 120px; }
+.char-count { font-size: 12px; color: var(--text2); text-align: right; margin-top: 2px; }
+
+/* Range slider */
+.slider-wrap { display: flex; align-items: center; gap: 8px; }
+.slider-wrap input[type="range"] { flex: 1; accent-color: var(--accent); }
+.slider-val { font-size: 13px; min-width: 36px; text-align: center; }
+
+/* Tags */
+.tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.tag { padding: 4px 10px; border-radius: 14px; font-size: 12px; background: var(--tag-bg); color: var(--tag-text); cursor: pointer; border: none; transition: all .15s; }
+.tag:hover { background: var(--accent); color: #fff; }
+
+/* Audio player */
+.audio-player { margin-top: 12px; }
+.audio-player audio { width: 100%; border-radius: 8px; }
+
+/* Toast */
+.toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; }
+.toast { padding: 10px 16px; border-radius: 8px; font-size: 13px; color: #fff; animation: slideIn .3s ease; max-width: 320px; box-shadow: 0 4px 12px var(--shadow); }
+.toast-success { background: var(--success); }
+.toast-error { background: var(--danger); }
+.toast-info { background: var(--accent); }
+@keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+/* History sidebar */
+.history-item { padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; }
+.history-item:hover { background: var(--bg3); }
+.history-item .hi-text { font-size: 12px; color: var(--text2); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-item .hi-meta { font-size: 11px; color: var(--text2); }
+.history-item .hi-actions { display: flex; gap: 4px; margin-top: 6px; }
+
+/* Novel reading - Three Column Layout */
+.novel-layout { display: flex; gap: 0; height: calc(100vh - 110px); overflow: hidden; }
+.nv-left { width: 240px; border-right: 1px solid var(--border); background: var(--bg2); display: flex; flex-direction: column; flex-shrink: 0; }
+.nv-center { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+.nv-right { width: 280px; border-left: 1px solid var(--border); background: var(--bg2); display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; }
+
+/* Left panel */
+.nv-left-header { padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.nv-left-header .breadcrumb { font-size: 11px; color: var(--text2); margin-bottom: 6px; }
+.nv-left-header .title { font-size: 14px; font-weight: 600; }
+.nv-search { padding: 8px 12px; border-bottom: 1px solid var(--border); }
+.nv-search input { width: 100%; padding: 6px 10px; border: 1px solid var(--border); border-radius: 6px; background: var(--bg); color: var(--text); font-size: 12px; }
+.chapter-list { flex: 1; overflow-y: auto; }
+.chapter-item { padding: 8px 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.chapter-item:hover { background: var(--bg3); }
+.chapter-item.active { background: var(--bg3); border-left: 3px solid var(--accent); }
+.chapter-item .ch-title { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+.chapter-item .ch-meta { font-size: 10px; color: var(--text2); white-space: nowrap; }
+.chapter-item .ch-mood { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: var(--tag-bg); }
+.chapter-item input[type="checkbox"] { accent-color: var(--accent); width: 14px; height: 14px; }
+.nv-left-actions { padding: 8px 12px; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 4px; }
+
+/* Center panel */
+.nv-toolbar { padding: 8px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--bg2); }
+.nv-toolbar .tb-group { display: flex; align-items: center; gap: 6px; }
+.nv-toolbar .tb-sep { width: 1px; height: 20px; background: var(--border); }
+.nv-script-area { flex: 1; overflow-y: auto; padding: 8px 12px; }
+.nv-player { border-top: 1px solid var(--border); padding: 8px 12px; background: var(--bg2); }
+
+/* Script item card */
+.script-card { display: flex; gap: 8px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 6px; background: var(--card); transition: border-color .15s; }
+.script-card:hover { border-color: var(--accent); }
+.script-card .sc-num { font-size: 11px; color: var(--text2); min-width: 24px; text-align: center; padding-top: 2px; }
+.script-card .sc-body { flex: 1; min-width: 0; }
+.script-card .sc-speaker { font-size: 12px; font-weight: 600; margin-bottom: 2px; display: flex; align-items: center; gap: 4px; }
+.script-card .sc-speaker.narrator { color: var(--text2); }
+.script-card .sc-speaker.character { color: var(--accent); }
+.script-card .sc-content { font-size: 13px; line-height: 1.5; word-break: break-all; }
+.script-card .sc-controls { display: flex; align-items: center; gap: 6px; margin-top: 4px; flex-wrap: wrap; }
+.script-card .sc-controls select, .script-card .sc-controls input { font-size: 11px; padding: 2px 4px; border: 1px solid var(--border); border-radius: 4px; background: var(--bg); color: var(--text); }
+.script-card .sc-controls input[type="number"] { width: 56px; }
+.script-card .sc-controls .emo-badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; background: var(--tag-bg); }
+.script-card .sc-actions { display: flex; flex-direction: column; gap: 4px; align-items: center; padding-top: 2px; }
+.script-card .sc-actions button { font-size: 14px; background: none; border: none; cursor: pointer; color: var(--text2); padding: 2px; border-radius: 4px; }
+.script-card .sc-actions button:hover { color: var(--accent); background: var(--bg3); }
+
+/* Right panel */
+.nv-right-section { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.nv-right-section h4 { font-size: 12px; color: var(--text2); margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between; }
+.char-card { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+.char-card:last-child { border-bottom: none; }
+.char-card .cc-name { font-weight: 600; display: flex; align-items: center; gap: 4px; }
+.char-card .cc-info { color: var(--text2); margin-top: 2px; font-size: 11px; }
+.char-card .cc-voice { margin-top: 3px; padding: 3px 6px; background: var(--bg); border-radius: 4px; font-size: 11px; }
+.char-card .cc-voice.has-design { border-left: 2px solid var(--accent); }
+.voice-item { display: flex; align-items: center; gap: 6px; padding: 5px 0; border-bottom: 1px solid var(--border); font-size: 12px; cursor: pointer; }
+.voice-item:hover { background: var(--bg3); margin: 0 -12px; padding: 5px 12px; }
+.voice-item .vi-name { flex: 1; }
+.voice-item .vi-badge { font-size: 10px; padding: 1px 4px; border-radius: 3px; background: var(--tag-bg); }
+
+/* Queue panels */
+.nv-queue-panel { border-top: 1px solid var(--border); padding: 8px 12px; background: var(--bg2); max-height: 150px; overflow-y: auto; }
+.nv-queue-panel h4 { font-size: 12px; margin-bottom: 6px; }
+
+/* Progress */
+.progress-bar { width: 100%; height: 6px; background: var(--bg3); border-radius: 3px; overflow: hidden; margin: 8px 0; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; }
+
+/* Drop zone */
+.drop-zone { border: 2px dashed var(--border); border-radius: 12px; padding: 32px; text-align: center; color: var(--text2); transition: all .2s; cursor: pointer; }
+.drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: rgba(0,113,227,.05); }
+.drop-zone p { font-size: 14px; margin-top: 8px; }
+.drop-zone .icon { font-size: 32px; }
+
+/* Queue */
+.queue-item { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.queue-item .qi-title { flex: 1; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.queue-status { font-size: 12px; padding: 2px 8px; border-radius: 4px; }
+.queue-pending { background: var(--tag-bg); color: var(--text2); }
+.queue-running { background: #fff3cd; color: #856404; }
+.queue-done { background: #d4edda; color: #155724; }
+.queue-error { background: #f8d7da; color: #721c24; }
+
+/* Novel player */
+.novel-player { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+.player-controls { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.player-controls .btn { min-width: 36px; }
+.player-chapter { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Modal */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.4); z-index: 200; display: flex; align-items: center; justify-content: center; }
+.modal { background: var(--bg2); border-radius: 16px; padding: 24px; max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto; }
+.modal h3 { margin-bottom: 16px; }
+
+/* Tab content */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .novel-layout { flex-direction: column; height: auto; }
+  .nv-left { width: 100%; max-height: 200px; border-right: none; border-bottom: 1px solid var(--border); }
+  .nv-right { width: 100%; border-left: none; border-top: 1px solid var(--border); max-height: 300px; }
+  .sidebar { width: 100%; position: fixed; right: 0; top: 0; height: 100%; z-index: 150; }
+  .container { flex-direction: column; height: auto; }
+  .main { min-height: 60vh; }
+}
+
+/* Loading spinner */
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.hidden { display: none !important; }
+
+/* LLM config */
+.llm-config { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
+.llm-config input { flex: 1; min-width: 150px; }
+</style>
+</head>
+<body>
+<!-- Header -->
+<div class="header">
+  <h1>AI 智能语音合成工作台</h1>
+  <div class="api-section">
+    <input type="password" id="apiKey" placeholder="输入 MiMo API Key">
+    <div class="btn-group">
+      <button class="btn btn-primary btn-sm" onclick="testConnection()">测试连接</button>
+      <button class="btn-icon" onclick="toggleTheme()" title="切换主题" id="themeBtn">&#9790;</button>
+      <button class="btn-icon" onclick="toggleHistory()" title="历史记录">&#9776;</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="switchTab(0)">TTS 基础合成</button>
+  <button class="tab" onclick="switchTab(1)">VoiceDesign 音色设计</button>
+  <button class="tab" onclick="switchTab(2)">VoiceClone 音色克隆</button>
+  <button class="tab" onclick="switchTab(3)">小说朗读</button>
+</div>
+
+<div class="container">
+<div class="main">
+
+<!-- Tab 1: TTS -->
+<div class="tab-content active" id="tab0">
+  <div class="card">
+    <h3>TTS 基础合成</h3>
+    <label>合成文本</label>
+    <textarea id="ttsText" rows="4" placeholder="输入要合成的文本..." oninput="updateCharCount(this,'ttsCharCount')"></textarea>
+    <div class="char-count"><span id="ttsCharCount">0</span> 字</div>
+    <br>
+    <div class="row">
+      <div>
+        <label>语音角色</label>
+        <select id="ttsVoice">
+          <option value="mimo_default">MiMo-默认</option>
+          <option value="冰糖">冰糖 (女/中文)</option>
+          <option value="茉莉">茉莉 (女/中文)</option>
+          <option value="苏打">苏打 (男/中文)</option>
+          <option value="白桦">白桦 (男/中文)</option>
+          <option value="Mia">Mia (女/英文)</option>
+          <option value="Chloe">Chloe (女/英文)</option>
+          <option value="Milo">Milo (男/英文)</option>
+          <option value="Dean">Dean (男/英文)</option>
+        </select>
+      </div>
+      <div>
+        <label>输出格式</label>
+        <select id="ttsFormat">
+          <option value="wav">WAV</option>
+          <option value="mp3">MP3</option>
+          <option value="pcm16">PCM16</option>
+          <option value="opus">Opus</option>
+          <option value="aac">AAC</option>
+        </select>
+      </div>
+    </div>
+    <br>
+    <label>风格指令（可选，放入 user message 控制语气风格）</label>
+    <input type="text" id="ttsStyle" placeholder="如：用温柔的语气，语速稍慢">
+    <br><br>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="generateTTS()" id="ttsBtn">生成语音</button>
+      <button class="btn btn-secondary hidden" id="ttsDownload" onclick="downloadLastAudio()">下载</button>
+    </div>
+    <div id="ttsPlayer" class="audio-player"></div>
+  </div>
+</div>
+
+<!-- Tab 2: VoiceDesign -->
+<div class="tab-content" id="tab1">
+  <div class="card">
+    <h3>VoiceDesign 音色设计</h3>
+    <label>音色描述</label>
+    <textarea id="vdDesc" rows="3" placeholder="描述你想要的音色，如：温柔女声，适合讲故事，语速适中" oninput="updateCharCount(this,'vdCharCount')"></textarea>
+    <div class="char-count"><span id="vdCharCount">0</span> 字</div>
+    <br>
+    <label>快捷标签</label>
+    <div class="tags">
+      <button class="tag" onclick="appendVDTag('温柔女声')">女声</button>
+      <button class="tag" onclick="appendVDTag('沉稳男声')">男声</button>
+      <button class="tag" onclick="appendVDTag('温柔')">温柔</button>
+      <button class="tag" onclick="appendVDTag('沉稳')">沉稳</button>
+      <button class="tag" onclick="appendVDTag('稚嫩童声')">童声</button>
+      <button class="tag" onclick="appendVDTag('磁性')">磁性</button>
+      <button class="tag" onclick="appendVDTag('活泼')">活泼</button>
+      <button class="tag" onclick="appendVDTag('沙哑')">沙哑</button>
+    </div>
+    <br>
+    <label>参考文本</label>
+    <textarea id="vdText" rows="3" placeholder="输入要朗读的文本">今天天气真好，阳光明媚，微风拂面，让人心情愉悦。</textarea>
+    <br>
+    <div class="row">
+      <div>
+        <label>输出格式</label>
+        <select id="vdFormat">
+          <option value="wav">WAV</option>
+          <option value="mp3">MP3</option>
+          <option value="pcm16">PCM16</option>
+        </select>
+      </div>
+    </div>
+    <br>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="generateVD()" id="vdBtn">生成预览</button>
+      <button class="btn btn-secondary hidden" id="vdDownload" onclick="downloadLastAudio()">下载</button>
+      <button class="btn btn-secondary" onclick="saveVDVoice()">保存到列表</button>
+    </div>
+    <div id="vdPlayer" class="audio-player"></div>
+  </div>
+  <div class="card" id="savedVoicesCard">
+    <h3>已保存音色</h3>
+    <div id="savedVoices"><p style="color:var(--text2);font-size:13px;">暂无保存的音色</p></div>
+  </div>
+</div>
+
+<!-- Tab 3: VoiceClone -->
+<div class="tab-content" id="tab2">
+  <div class="card">
+    <h3>VoiceClone 音色克隆</h3>
+    <div class="drop-zone" id="cloneDropZone" onclick="document.getElementById('cloneFile').click()" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleCloneDrop(event)">
+      <div class="icon">&#127908;</div>
+      <p>拖拽音频文件到此处，或点击上传</p>
+      <p style="font-size:12px;margin-top:4px;">支持 MP3 / WAV / FLAC（Base64 后不超过 10MB）</p>
+      <input type="file" id="cloneFile" accept="audio/*" style="display:none" onchange="handleCloneFile(this)">
+    </div>
+    <div id="cloneFileInfo" class="hidden" style="margin-top:12px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="cloneFileName" style="font-size:13px;font-weight:500;"></span>
+        <span id="cloneFileSize" style="font-size:12px;color:var(--text2);"></span>
+        <button class="btn-icon" onclick="clearCloneFile()">&#10005;</button>
+      </div>
+      <div id="clonePreview" class="audio-player" style="margin-top:8px;"></div>
+    </div>
+    <br>
+    <label>合成文本</label>
+    <textarea id="cloneText" rows="3" placeholder="输入要合成的文本"></textarea>
+    <br>
+    <label>风格指令（可选）</label>
+    <input type="text" id="cloneStyle" placeholder="如：用开心的语气朗读">
+    <br><br>
+    <div class="row">
+      <div>
+        <label>输出格式</label>
+        <select id="cloneFormat">
+          <option value="wav">WAV</option>
+          <option value="mp3">MP3</option>
+          <option value="pcm16">PCM16</option>
+        </select>
+      </div>
+    </div>
+    <br>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" onclick="generateClone()" id="cloneBtn">克隆生成</button>
+      <button class="btn btn-secondary hidden" id="cloneDownload" onclick="downloadLastAudio()">下载</button>
+    </div>
+    <div id="clonePlayer" class="audio-player"></div>
+  </div>
+</div>
+
+<!-- Tab 4: Novel Reading -->
+<div class="tab-content" id="tab3">
+  <!-- Import Card -->
+  <div class="card" id="novelImportCard">
+    <h3>小说朗读</h3>
+    <div style="display:flex;gap:8px;margin-bottom:16px;">
+      <button class="btn btn-primary" onclick="createNewProject()" style="flex:1;">新建项目</button>
+    </div>
+    <div class="drop-zone" id="novelDropZone" ondragover="event.preventDefault();this.classList.add('dragover')" ondragleave="this.classList.remove('dragover')" ondrop="handleNovelDrop(event)">
+      <div class="icon">&#128214;</div>
+      <p>拖拽 TXT 小说到此处快速创建项目</p>
+      <p style="font-size:12px;margin-top:4px;">自动检测编码，自动选择保存目录</p>
+    </div>
+    <div style="margin-top:16px;">
+      <h3 style="font-size:14px;margin-bottom:8px;">历史项目</h3>
+      <div id="projectList"></div>
+    </div>
+  </div>
+
+  <!-- Three Column Workspace -->
+  <div id="novelWorkspace" class="hidden">
+    <div class="novel-layout">
+      <!-- ===== 左栏：章节导航 ===== -->
+      <div class="nv-left">
+        <div class="nv-left-header">
+          <div class="breadcrumb"><a href="#" onclick="backToProjects();return false;" style="color:var(--accent);text-decoration:none;">&#9664; 项目列表</a></div>
+          <div class="title" id="novelTitle">小说标题</div>
+          <div style="font-size:11px;color:var(--text2);margin-top:2px;" id="novelStats"></div>
+        </div>
+        <div class="nv-search">
+          <input type="text" id="chapterSearch" placeholder="搜索章节..." oninput="filterChapters(this.value)">
+        </div>
+        <div class="chapter-list" id="chapterList"></div>
+        <div class="nv-left-actions">
+          <button class="btn btn-sm btn-secondary" onclick="selectAllChapters(true)">全选</button>
+          <button class="btn btn-sm btn-secondary" onclick="selectAllChapters(false)">取消</button>
+          <button class="btn btn-sm btn-secondary" onclick="selectUnanalyzedChapters()">未分析</button>
+          <button class="btn btn-sm btn-primary" onclick="startEmotionAnalysis()" id="emotionBtn">情绪分析</button>
+        </div>
+      </div>
+
+      <!-- ===== 中栏：脚本编辑 ===== -->
+      <div class="nv-center">
+        <!-- Toolbar -->
+        <div class="nv-toolbar">
+          <div class="tb-group">
+            <button class="btn btn-sm btn-secondary" onclick="backToProjects()">&#9664; 返回</button>
+            <button class="btn btn-sm btn-secondary" onclick="document.getElementById('novelFile2').click()">导入TXT</button>
+            <input type="file" id="novelFile2" accept=".txt" style="display:none" onchange="importTxtToProject(this)">
+            <button class="btn btn-sm btn-primary" onclick="saveProject()">保存项目</button>
+            <button class="btn btn-sm btn-primary" onclick="generateChapterAudio(this)">生成本章音频</button>
+            <button class="btn btn-sm btn-secondary" onclick="startBatchGenerate()" id="batchBtn">全部生成</button>
+          </div>
+          <div class="tb-sep"></div>
+          <div class="tb-group">
+            <button class="btn btn-sm btn-secondary" onclick="exportAllAudio()">导出全部</button>
+            <button class="btn btn-sm btn-secondary" onclick="batchSetDelay()">批量停顿</button>
+            <button class="btn btn-sm btn-secondary" onclick="selectOutputDir()">音频目录</button>
+            <span id="outputDirLabel" style="font-size:11px;color:var(--text2);">未选择</span>
+            <button class="btn btn-sm btn-secondary" onclick="linkProjectDir()" style="margin-left:4px;">项目目录</button>
+            <span id="projectDirLabel" style="font-size:11px;color:var(--text2);">未选择</span>
+          </div>
+          <div class="tb-sep"></div>
+          <div class="tb-group">
+            <label style="font-size:12px;color:var(--text2);margin:0;">筛选</label>
+            <select id="speakerFilter" style="font-size:12px;padding:3px 6px;max-width:120px;" onchange="filterBySpeaker(this.value)">
+              <option value="">全部</option>
+            </select>
+          </div>
+          <div style="flex:1;"></div>
+          <div class="tb-group">
+            <select id="novelVoice" style="font-size:12px;padding:3px 6px;">
+              <option value="mimo_default">MiMo-默认</option>
+              <option value="冰糖">冰糖</option>
+              <option value="茉莉">茉莉</option>
+              <option value="苏打">苏打</option>
+              <option value="白桦">白桦</option>
+              <option value="Mia">Mia</option>
+              <option value="Chloe">Chloe</option>
+              <option value="Milo">Milo</option>
+              <option value="Dean">Dean</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Script Area -->
+        <div class="nv-script-area" id="scriptArea">
+          <div style="text-align:center;padding:40px;color:var(--text2);">
+            <p style="font-size:14px;">点击「导入TXT」导入小说，或选择章节后点击「情绪分析」</p>
+          </div>
+        </div>
+
+        <!-- Queue Panels -->
+        <div id="emotionProgress" class="nv-queue-panel hidden">
+          <h4>情绪分析队列 <button class="btn btn-sm btn-secondary" onclick="abortCurrentTask()" style="font-size:10px;padding:1px 6px;">取消</button></h4>
+          <div id="emotionQueueList"></div>
+        </div>
+        <div id="batchProgress" class="nv-queue-panel hidden">
+          <h4>生成队列 <button class="btn btn-sm btn-secondary" onclick="abortCurrentTask()" style="font-size:10px;padding:1px 6px;">取消</button></h4>
+          <div id="queueList"></div>
+        </div>
+
+        <!-- Player -->
+        <div class="nv-player" id="novelPlayer" style="display:none;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-secondary btn-sm" onclick="playPrevChapter()">&#9664;&#9664;</button>
+            <button class="btn btn-primary btn-sm" onclick="toggleNovelPlay()" id="novelPlayBtn">&#9654;</button>
+            <button class="btn btn-secondary btn-sm" onclick="playNextChapter()">&#9654;&#9654;</button>
+            <span class="player-chapter" id="playerChapterTitle" style="flex:1;font-size:13px;">-</span>
+            <button class="btn btn-sm btn-secondary" onclick="downloadChapterAudio()">下载</button>
+          </div>
+          <div style="margin-top:6px;">
+            <input type="range" id="novelSeek" min="0" max="100" value="0" style="width:100%;accent-color:var(--accent);" oninput="seekNovelAudio(this.value)">
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:2px;">
+            <span style="font-size:11px;color:var(--text2);" id="novelTime">0:00 / 0:00</span>
+            <div style="flex:1;"></div>
+            <label style="margin:0;font-size:11px;">速度</label>
+            <select id="novelSpeed" style="width:52px;padding:1px 3px;font-size:11px;" onchange="setNovelSpeed(this.value)">
+              <option value="0.5">0.5x</option>
+              <option value="0.75">0.75x</option>
+              <option value="1" selected>1x</option>
+              <option value="1.25">1.25x</option>
+              <option value="1.5">1.5x</option>
+              <option value="2">2x</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== 右栏：角色与音色 ===== -->
+      <div class="nv-right">
+        <!-- LLM Config (compact) -->
+        <div class="nv-right-section">
+          <h4>LLM 配置 <button class="btn btn-sm btn-secondary" onclick="testLLMConnection()" id="llmTestBtn" style="font-size:10px;padding:2px 6px;">测试</button></h4>
+          <input type="text" id="llmBaseUrl" placeholder="API Base URL" value="https://api.deepseek.com" style="font-size:11px;margin-bottom:4px;">
+          <input type="password" id="llmApiKey" placeholder="API Key" style="font-size:11px;margin-bottom:4px;">
+          <div style="display:flex;gap:4px;">
+            <input type="text" id="llmModel" placeholder="模型名" value="deepseek-v4-flash" style="font-size:11px;flex:1;">
+          </div>
+        </div>
+
+        <!-- Characters -->
+        <div class="nv-right-section" style="flex:1;overflow-y:auto;">
+          <h4>角色列表 <span id="charCount" style="font-weight:normal;color:var(--text2);">0</span>
+            <span>
+              <button class="btn btn-sm btn-secondary" onclick="showCharacterModal()" style="font-size:10px;padding:2px 6px;">管理</button>
+              <button class="btn btn-sm btn-secondary" onclick="designAllVoices()" style="font-size:10px;padding:2px 6px;">AI设计全部音色</button>
+            </span>
+          </h4>
+          <div id="charList">
+            <p style="color:var(--text2);font-size:12px;">分析后显示角色</p>
+          </div>
+        </div>
+
+        <!-- Voice Library -->
+        <div class="nv-right-section">
+          <h4>预置音色库</h4>
+          <div id="voiceLibrary">
+            <div class="voice-item" onclick="selectPresetVoice('mimo_default')"><span class="vi-name">MiMo-默认</span><span class="vi-badge">中文</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('冰糖')"><span class="vi-name">冰糖</span><span class="vi-badge">女/中文</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('茉莉')"><span class="vi-name">茉莉</span><span class="vi-badge">女/中文</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('苏打')"><span class="vi-name">苏打</span><span class="vi-badge">男/中文</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('白桦')"><span class="vi-name">白桦</span><span class="vi-badge">男/中文</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('Mia')"><span class="vi-name">Mia</span><span class="vi-badge">女/EN</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('Chloe')"><span class="vi-name">Chloe</span><span class="vi-badge">女/EN</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('Milo')"><span class="vi-name">Milo</span><span class="vi-badge">男/EN</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('Dean')"><span class="vi-name">Dean</span><span class="vi-badge">男/EN</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<!-- History Sidebar -->
+<div class="sidebar" id="historySidebar">
+  <div style="padding:16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+    <h3 style="font-size:15px;">生成历史</h3>
+    <button class="btn-icon" onclick="clearHistory()">&#128465;</button>
+  </div>
+  <div id="historyList"></div>
+</div>
+</div>
+
+<!-- Toast container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Character Management Modal -->
+<div class="modal-overlay hidden" id="characterModal" onclick="if(event.target===this)closeCharacterModal()">
+  <div class="modal" style="max-width:650px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+      <h3 style="margin:0;">角色管理</h3>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-sm btn-primary" onclick="designAllVoices()">一键生成全部音色</button>
+        <button class="btn-icon" onclick="closeCharacterModal()">&#10005;</button>
+      </div>
+    </div>
+    <div id="characterModalContent"></div>
+  </div>
+</div>
+
+<!-- Audio for novel playback -->
+<audio id="novelAudio" style="display:none;"></audio>
+
+<script>
+// ========== State ==========
+// MiMo 情绪标签 → 自然语言风格描述映射
+const EMO_STYLE_MAP = {
+  '不解': '带着困惑和疑问的语气，眉头微皱',
+  '中性': '',
+  '催促': '语气急切催促',
+  '反问': '反问的语气，微微上扬的语调',
+  '口是心非': '故作镇定但语调不自然，有些心虚',
+  '哀伤': '声音低沉哀伤',
+  '哭腔': '带着哭腔，声音颤抖',
+  '哭诉': '哭着诉说，声音哽咽断断续续',
+  '哽咽': '哽咽着说不出话，停顿中带着抽泣',
+  '嘲讽': '嘲讽的语气，带着不屑和挖苦',
+  '嘶吼': '嘶声力竭地喊叫，声音沙哑',
+  '天真': '天真无邪的语气，声音清脆明亮',
+  '失落': '失落无力，声音低落',
+  '委屈哭': '委屈地哭泣，声音带着不满',
+  '害怕': '声音颤抖，带着恐惧',
+  '小声说': '压低声音小声说话',
+  '小声请求': '小声地恳求，声音柔弱',
+  '开朗': '开朗明快，语调上扬',
+  '微疯': '略带疯狂，语气不稳',
+  '微请求': '轻声请求，语气温和试探',
+  '怒其不争': '恨铁不成钢的愤怒，语气沉重',
+  '恐惧': '极度恐惧，声音颤抖发虚',
+  '恭敬': '恭敬有礼，语气谦卑',
+  '悲伤': '悲伤低沉，声音压抑',
+  '惊讶': '惊讶的语气，音调突然升高',
+  '感谢': '真诚感谢，语气温暖',
+  '愤怒': '愤怒大声，语气激烈',
+  '撒娇': '撒娇的语气，声音甜腻',
+  '明媚': '明媚欢快，声音明亮有活力',
+  '气急': '气急败坏，语气急促激烈',
+  '温柔': '温柔轻声，语调柔和',
+  '生气': '生气不满，语气强硬',
+  '疑惑': '疑惑不解，语调上扬',
+  '疑问': '疑问的语气，尾音上扬',
+  '自我怀疑': '自我怀疑，语气犹豫不自信',
+  '花痴': '花痴的语气，声音兴奋发嗲',
+  '苦涩': '苦涩无奈，声音低沉沙哑',
+  '训斥': '严厉训斥，语气严肃强硬',
+  '质问': '质问的语气，声音严厉',
+  '轻蔑': '轻蔑不屑，语气冷淡',
+  '阴森': '阴森低沉，声音冰冷',
+  '霸气': '霸气十足，声音浑厚有力',
+  '骂街': '破口大骂，声音尖锐激烈',
+  '高兴': '高兴欢快，语调上扬明亮'
+};
+
+// 有声书脚本分析 Prompt
+const SCRIPT_ANALYSIS_PROMPT = `你是一个专业有声书脚本分析师。请仔细阅读提供的小说章节文本，将其转换为包含深度角色分析和精密有声书脚本的 JSON 格式。
+
+## 输出结构
+输出必须是纯净的 JSON，严禁包含 markdown 标记（如 \`\`\`json），严禁包含任何注释或前言后语。根对象包含两个顶级字段：
+
+{
+  "character_map": { ... },
+  "script": [ ... ]
+}
+
+## character_map 角色深度分析
+提取本章节出现的关键角色（不含旁白）：
+- 键: 角色姓名（与原文一致）
+- gender: 性别（男/女/未知）
+- age: 年龄或年龄范围
+- role_tag: "重要角色"（主角/主要配角/反派/名字独特性格鲜明）或 "路人角色"（名字通用/描述简略的龙套）
+- personality: 30-60字，人物画像。重要角色强调独特性；路人角色强调职业特征
+- timbre: 音色建议。重要角色描述辨识度高的声音；路人角色描述大众刻板印象的声音
+
+## script 有声书演绎脚本
+使用两套情感控制系统：
+- speaker_emo: 情感声线标签，从以下列表选择。旁白固定为"中性"，角色默认"中性"，仅在情绪关键转变时切换。
+- emo_vector: 8个浮点数数组 [喜, 怒, 哀, 惧, 厌恶, 低落, 惊喜, 平静]。旁白固定全0，角色默认全0，单值上限0.3。
+
+每个脚本对象字段：
+- speaker: 说话者（"旁白" 或 角色名）
+- speaker_emo: 情感声线标签（从下方列表选择）
+- content: 对话或旁白内容。长段落（>100字）在标点处拆分。只保留 ，、。、！、？和...。
+- emo_vector: 8位浮点数组
+- delay: 整数毫秒。旁白200-500ms，角色150-500ms，情绪转折处400-1000ms。节奏自然流畅，不急不慢
+
+## 可选 speaker_emo 列表
+不解、中性、催促、反问、口是心非、哀伤、哭腔、哭诉、哽咽、嘲讽、嘶吼、天真、失落、委屈哭、害怕、小声说、小声请求、开朗、微疯、微请求、怒其不争、恐惧、恭敬、悲伤、惊讶、感谢、愤怒、撒娇、明媚、气急、温柔、生气、疑惑、疑问、自我怀疑、花痴、苦涩、训斥、质问、轻蔑、阴森、霸气、骂街、高兴
+
+## 克制原则
+默认状态永远是中性。只在原文有明确且强烈的必要性时才调整 speaker_emo 和 emo_vector。
+
+## 小说章节内容如下：
+`;
+const API_BASE = 'https://api.xiaomimimo.com/v1';
+let lastAudioBlob = null;
+let lastAudioUrl = null;
+let lastAudioExt = 'wav';
+let history = JSON.parse(localStorage.getItem('mimo_history') || '[]');
+let savedVoices = JSON.parse(localStorage.getItem('mimo_voices') || '[]');
+
+// Novel state
+let chapters = [];
+let currentChapter = -1;
+let novelAudioBlobs = {};
+let novelPlaying = false;
+let novelAudio = document.getElementById('novelAudio');
+
+// 全局角色注册表（跨章节复用）
+// 格式: { name: { name, gender, age, role_tag, personality, timbre, voiceDesignPrompt, ttsStyle, chapters: [] } }
+let globalCharacters = {};
+let currentProjectName = '';
+let autoSaveTimer = null;
+let synthCache = new Map();
+let synthCacheDirty = new Set(); // 需要写入 IndexedDB 的新 key
+let outputDirHandle = null; // 用户选择的输出目录（音频自动保存）
+let projectDirHandle = null; // 项目数据目录（project.json + 章节数据）
+let currentAbort = null; // 当前任务的 AbortController
+
+function startAutoSave() {
+  stopAutoSave();
+  autoSaveTimer = setInterval(function() {
+    if (currentProjectName && chapters.length) {
+      console.log('[自动保存]', currentProjectName);
+      saveProject(true);
+    }
+  }, 60000);
+}
+
+function stopAutoSave() {
+  if (autoSaveTimer) { clearInterval(autoSaveTimer); autoSaveTimer = null; }
+}
+
+// ========== Project Storage ==========
+function saveSynthCache() {} // 合成缓存现在通过 project.json 持久化，不再单独存 IndexedDB
+function loadSynthCache() {} // 加载时由 project.json 恢复
+// 项目列表存在 localStorage（可靠，不依赖 IndexedDB）
+// 文件夹句柄存在 IndexedDB（仅用于自动恢复目录访问）
+// 所有实际数据存在用户选择的本地文件夹中
+
+var HANDLE_DB = 'MiMoTTSHandles';
+var handleDb = null;
+
+function openHandleDB() {
+  return new Promise(function(resolve, reject) {
+    if (handleDb) { resolve(handleDb); return; }
+    var req = indexedDB.open(HANDLE_DB, 1);
+    req.onupgradeneeded = function(e) {
+      var d = e.target.result;
+      if (!d.objectStoreNames.contains('handles')) {
+        d.createObjectStore('handles', { keyPath: 'name' });
+      }
+    };
+    req.onsuccess = function(e) { handleDb = e.target.result; resolve(handleDb); };
+    req.onerror = function(e) { reject(e.target.error); };
+  });
+}
+
+function saveHandle(name, handle) {
+  return openHandleDB().then(function(d) {
+    return new Promise(function(resolve) {
+      var tx = d.transaction('handles', 'readwrite');
+      tx.objectStore('handles').put({ name: name, handle: handle, time: Date.now() });
+      tx.oncomplete = resolve;
+      tx.onerror = function() { resolve(); };
+    });
+  }).catch(function() {});
+}
+
+function getHandle(name) {
+  return openHandleDB().then(function(d) {
+    return new Promise(function(resolve) {
+      var tx = d.transaction('handles', 'readonly');
+      var req = tx.objectStore('handles').get(name);
+      req.onsuccess = function() { resolve(req.result ? req.result.handle : null); };
+      req.onerror = function() { resolve(null); };
+    });
+  }).catch(function() { return null; });
+}
+
+function deleteHandle(name) {
+  return openHandleDB().then(function(d) {
+    return new Promise(function(resolve) {
+      var tx = d.transaction('handles', 'readwrite');
+      tx.objectStore('handles').delete(name);
+      tx.oncomplete = resolve;
+      tx.onerror = function() { resolve(); };
+    });
+  }).catch(function() {});
+}
+
+// --- 项目列表（localStorage）---
+function getProjectList() {
+  try { return JSON.parse(localStorage.getItem('mimo_projects') || '[]'); }
+  catch { return []; }
+}
+
+function saveProjectList(list) {
+  localStorage.setItem('mimo_projects', JSON.stringify(list));
+}
+
+function addProjectToList(name) {
+  var list = getProjectList();
+  var idx = list.findIndex(function(p) { return p.name === name; });
+  if (idx >= 0) { list[idx].time = Date.now(); }
+  else { list.push({ name: name, time: Date.now() }); }
+  saveProjectList(list);
+}
+
+function removeProjectFromList(name) {
+  saveProjectList(getProjectList().filter(function(p) { return p.name !== name; }));
+}
+
+// --- 文件操作 ---
+async function pickProjectFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    toast('当前浏览器不支持，请使用 Chrome/Edge', 'error');
+    return null;
+  }
+  try {
+    return await window.showDirectoryPicker({ mode: 'readwrite' });
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('选择失败: ' + e.message, 'error');
+    return null;
+  }
+}
+
+async function ensureProjectDirs(dirHandle) {
+  try { await dirHandle.getDirectoryHandle('audio', { create: true }); } catch {}
+}
+
+async function writeFileToDir(dirHandle, filename, data) {
+  try {
+    var fh = await dirHandle.getFileHandle(filename, { create: true });
+    var w = await fh.createWritable();
+    await w.write(data);
+    await w.close();
+    return true;
+  } catch (e) { console.error('[写入失败]', filename, e); return false; }
+}
+
+async function readFileFromDir(dirHandle, filename) {
+  try {
+    var fh = await dirHandle.getFileHandle(filename);
+    return await (await fh.getFile()).text();
+  } catch { return null; }
+}
+
+async function verifyDirPermission(dirHandle) {
+  if (!dirHandle) return false;
+  var p = await dirHandle.queryPermission({ mode: 'readwrite' });
+  if (p === 'granted') return true;
+  p = await dirHandle.requestPermission({ mode: 'readwrite' });
+  return p === 'granted';
+}
+
+// 保存 project.json 到文件夹
+async function saveProjectToDir() {
+  if (!projectDirHandle || !currentProjectName) return;
+  try {
+    var charsCopy = {};
+    for (var k in globalCharacters) {
+      if (globalCharacters.hasOwnProperty(k)) {
+        var c = globalCharacters[k];
+        charsCopy[k] = {
+          name: c.name, gender: c.gender, age: c.age, role_tag: c.role_tag,
+          personality: c.personality, timbre: c.timbre,
+          voiceDesignPrompt: c.voiceDesignPrompt || null,
+          ttsStyle: c.ttsStyle || null,
+          chapters: Array.isArray(c.chapters) ? c.chapters.slice() : []
+        };
+      }
+    }
+    var pd = {
+      name: currentProjectName,
+      time: Date.now(),
+      chapters: chapters.map(function(ch) {
+        return {
+          title: ch.title, content: ch.content, checked: ch.checked,
+          mood: ch.mood || null,
+          hasAnalysis: !!(ch.characterMap || ch.script)
+        };
+      }),
+      globalCharacters: charsCopy
+    };
+    await writeFileToDir(projectDirHandle, 'project.json', JSON.stringify(pd));
+    console.log('[文件保存] project.json');
+  } catch (e) { console.error('[文件保存失败]', e); }
+}
+
+// 将单章分析结果（API 返回的 JSON）保存为独立文件
+async function saveChapterResult(idx, data) {
+  if (!projectDirHandle) return;
+  try {
+    var cd = await projectDirHandle.getDirectoryHandle('chapters', { create: true });
+    var fn = 'ch_' + String(idx).padStart(3, '0') + '.json';
+    await writeFileToDir(cd, fn, JSON.stringify(data));
+    console.log('[章节保存]', fn);
+  } catch (e) { console.error('[章节保存失败]', idx, e); }
+}
+
+async function saveAudioToProjectDir(blob, filename) {
+  if (!projectDirHandle) return false;
+  try {
+    var ad = await projectDirHandle.getDirectoryHandle('audio', { create: true });
+    var sn = filename.replace(/[\\/:*?"<>|]/g, '_');
+    if (!sn.endsWith('.wav')) sn += '.wav';
+    var fh = await ad.getFileHandle(sn, { create: true });
+    var w = await fh.createWritable();
+    await w.write(blob);
+    await w.close();
+    console.log('[自动保存]', sn, (blob.size / 1024).toFixed(0) + 'KB');
+    return true;
+  } catch (e) { console.error('[自动保存失败]', filename, e); return false; }
+}
+
+// ========== Project CRUD ==========
+// 新建项目：选文件夹 → 写入 project.json → 进入工作区
+async function createNewProject(txtFile) {
+  var folder = await pickProjectFolder();
+  if (!folder) return;
+
+  // 设置项目状态
+  var name = folder.name;
+  currentProjectName = name;
+  projectDirHandle = folder;
+  globalCharacters = {};
+  synthCache.clear();
+  novelAudioBlobs = {};
+  if (currentAbort) { try { currentAbort.abort(); } catch(e) {} currentAbort = null; }
+  var emoBtn = document.getElementById('emotionBtn');
+  if (emoBtn) { emoBtn.disabled = false; emoBtn.textContent = '情绪分析'; }
+  document.getElementById('emotionProgress')?.classList.add('hidden');
+
+  // 如果有 txt 文件，先导入
+  if (txtFile) {
+    try {
+      var buf = await txtFile.arrayBuffer();
+      var encoding = detectEncoding(new Uint8Array(buf));
+      var text = new TextDecoder(encoding).decode(buf);
+      splitChapters(text, name);
+    } catch (e) {
+      toast('文件读取失败: ' + e.message, 'error');
+      return;
+    }
+  } else {
+    chapters = [];
+  }
+
+  // 写入文件夹
+  await ensureProjectDirs(folder);
+  await saveProjectToDir();
+
+  // 记录到 localStorage + IndexedDB（句柄）
+  addProjectToList(name);
+  await saveHandle(name, folder);
+
+  // 进入工作区
+  document.getElementById('novelTitle').textContent = name;
+  var totalChars = chapters.reduce(function(s, c) { return s + c.content.length; }, 0);
+  document.getElementById('novelStats').textContent = '共 ' + chapters.length + ' 章 / ' + totalChars.toLocaleString() + ' 字';
+  currentChapter = chapters.length > 0 ? 0 : -1;
+  document.getElementById('novelWorkspace').classList.remove('hidden');
+  document.getElementById('novelImportCard').classList.add('hidden');
+  updateProjectDirLabel();
+  if (chapters.length > 0) { renderChapterList(); showChapter(0); }
+  updateCharList();
+  startAutoSave();
+  toast('项目已创建: ' + name + (chapters.length ? ' (' + chapters.length + '章)' : ''), 'success');
+}
+
+// 加载项目：从 localStorage 找名字 → 从 IndexedDB 拿句柄 → 读文件
+async function loadProject(name) {
+  try {
+    // 尝试恢复文件夹句柄
+    var handle = await getHandle(name);
+    if (handle) {
+      var ok = await verifyDirPermission(handle);
+      if (!ok) handle = null;
+    }
+    if (!handle) {
+      toast('请选择项目文件夹: ' + name, 'info');
+      handle = await pickProjectFolder();
+      if (!handle) return;
+      await saveHandle(name, handle);
+    }
+
+    projectDirHandle = handle;
+    currentProjectName = name;
+
+    // 从文件夹读取 project.json
+    var raw = await readFileFromDir(handle, 'project.json');
+    if (!raw) { toast('文件夹中没有 project.json', 'error'); return; }
+
+    var data = JSON.parse(raw);
+    chapters = (data.chapters || []).map(function(ch) {
+      return {
+        title: ch.title, content: ch.content || '', checked: ch.checked !== false,
+        mood: ch.mood || null, characterMap: ch.characterMap || null,
+        script: ch.script || null, ttsPrompt: ch.ttsPrompt || null
+      };
+    });
+    globalCharacters = data.globalCharacters || {};
+
+    // 从 chapters/ 文件夹加载章节正文（新格式）和分析结果
+    try {
+      var chapDir = await handle.getDirectoryHandle('chapters');
+      for (var i = 0; i < chapters.length; i++) {
+        // 如果 project.json 里没有 content，尝试从单独文件读取
+        if (!chapters[i].content) {
+          try {
+            var cfn = 'ch_' + String(i).padStart(3, '0') + '_content.txt';
+            var content = await readFileFromDir(chapDir, cfn);
+            if (content) chapters[i].content = content;
+          } catch (e) {}
+        }
+        // 加载分析结果
+        if (!chapters[i].script && !chapters[i].characterMap) {
+          try {
+            var fn = 'ch_' + String(i).padStart(3, '0') + '.json';
+            var chRaw = await readFileFromDir(chapDir, fn);
+            if (chRaw) {
+              var chData = JSON.parse(chRaw);
+              chapters[i].characterMap = chData.characterMap || null;
+              chapters[i].script = chData.script || null;
+              if (chData.mood) chapters[i].mood = chData.mood;
+            }
+          } catch (e) { /* 该章节无分析结果 */ }
+        }
+      }
+    } catch (e) { /* 无 chapters 文件夹 */ }
+    synthCache.clear();
+    novelAudioBlobs = {};
+    // 重置 UI 状态
+    if (currentAbort) { try { currentAbort.abort(); } catch(e) {} currentAbort = null; }
+    var emoBtn = document.getElementById('emotionBtn');
+    if (emoBtn) { emoBtn.disabled = false; emoBtn.textContent = '情绪分析'; }
+    document.getElementById('emotionProgress')?.classList.add('hidden');
+
+    document.getElementById('novelTitle').textContent = name;
+    var tc = chapters.reduce(function(s, c) { return s + c.content.length; }, 0);
+    document.getElementById('novelStats').textContent = '共 ' + chapters.length + ' 章 / ' + tc.toLocaleString() + ' 字';
+    currentChapter = chapters.length > 0 ? 0 : -1;
+    document.getElementById('novelWorkspace').classList.remove('hidden');
+    document.getElementById('novelImportCard').classList.add('hidden');
+    updateProjectDirLabel();
+    if (chapters.length > 0) { renderChapterList(); showChapter(0); }
+    updateCharList();
+    startAutoSave();
+    toast('已加载: ' + name + ' (' + chapters.length + '章)', 'success');
+  } catch (e) {
+    toast('加载失败: ' + e.message, 'error');
+  }
+}
+
+async function deleteProject(name) {
+  if (!confirm('确定删除项目「' + name + '」？（仅删除记录，文件夹不受影响）')) return;
+  removeProjectFromList(name);
+  await deleteHandle(name);
+  renderProjectList();
+  toast('已删除: ' + name, 'info');
+}
+
+// 保存项目（到文件夹），silent=true 时不弹 toast
+async function saveProject(silent) {
+  if (!currentProjectName || !projectDirHandle) return;
+  try {
+    await saveProjectToDir();
+    addProjectToList(currentProjectName);
+    if (!silent) toast('已保存', 'success');
+    renderProjectList();
+  } catch (e) {
+    if (!silent) toast('保存失败: ' + e.message, 'error');
+    else console.error('[自动保存失败]', e);
+  }
+}
+
+async function backToProjects() {
+  stopAutoSave();
+  // 保存到文件夹
+  if (currentProjectName && projectDirHandle && chapters.length) {
+    try { await saveProjectToDir(); addProjectToList(currentProjectName); } catch(e) { console.error('[返回保存]', e); }
+  }
+  // 重置
+  globalCharacters = {};
+  chapters = [];
+  currentChapter = -1;
+  currentProjectName = '';
+  synthCache.clear();
+  novelAudioBlobs = {};
+  if (lastAudioUrl) { URL.revokeObjectURL(lastAudioUrl); lastAudioUrl = null; }
+  lastAudioBlob = null;
+  currentSpeakerFilter = '';
+  projectDirHandle = null;
+  if (currentAbort) { try { currentAbort.abort(); } catch(e) {} currentAbort = null; }
+  document.getElementById('novelWorkspace').classList.add('hidden');
+  document.getElementById('novelImportCard').classList.remove('hidden');
+  document.getElementById('novelPlayer').style.display = 'none';
+  renderProjectList();
+}
+
+function renderProjectList() {
+  var el = document.getElementById('projectList');
+  var list = getProjectList();
+  list.sort(function(a, b) { return (b.time || 0) - (a.time || 0); });
+  if (!list.length) {
+    el.innerHTML = '<p style="color:var(--text2);font-size:12px;padding:8px 0;">暂无项目，点击「新建项目」或拖拽 TXT 开始</p>';
+    return;
+  }
+  el.innerHTML = list.map(function(p) {
+    var d = new Date(p.time);
+    var ts = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+    return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">' +
+      '<span style="flex:1;font-weight:500;cursor:pointer;color:var(--accent);" onclick="loadProject(\'' + esc(p.name) + '\')">' + esc(p.name) + '</span>' +
+      '<span style="font-size:11px;color:var(--text2);">' + ts + '</span>' +
+      '<button class="btn-icon" onclick="event.stopPropagation();deleteProject(\'' + esc(p.name) + '\')" style="font-size:14px;color:var(--danger);">&#128465;</button>' +
+    '</div>';
+  }).join('');
+}
+
+// 关联已有项目文件夹
+async function linkProjectDir() {
+  var handle = await pickProjectFolder();
+  if (!handle) return;
+  projectDirHandle = handle;
+  await ensureProjectDirs(handle);
+  await saveHandle(currentProjectName, handle);
+  updateProjectDirLabel();
+  await saveProjectToDir();
+  toast('已关联文件夹: ' + handle.name, 'success');
+}
+
+function updateProjectDirLabel() {
+  var el = document.getElementById('projectDirLabel');
+  if (el) el.textContent = projectDirHandle ? projectDirHandle.name : '未选择';
+}
+
+// 取消当前正在进行的分析/生成任务
+function abortCurrentTask() {
+  if (currentAbort) {
+    currentAbort.abort();
+    currentAbort = null;
+    toast('已取消当前任务', 'info');
+  }
+}
+
+// ========== Init ==========
+document.addEventListener('DOMContentLoaded', () => {
+  const key = localStorage.getItem('mimo_api_key');
+  if (key) document.getElementById('apiKey').value = key;
+  const theme = localStorage.getItem('mimo_theme') || 'light';
+  setTheme(theme);
+  // Restore LLM config
+  const llmUrl = localStorage.getItem('mimo_llm_url');
+  const llmKey = localStorage.getItem('mimo_llm_key');
+  const llmModel = localStorage.getItem('mimo_llm_model');
+  if (llmUrl) document.getElementById('llmBaseUrl').value = llmUrl;
+  if (llmKey) document.getElementById('llmApiKey').value = llmKey;
+  if (llmModel) document.getElementById('llmModel').value = llmModel;
+  renderProjectList();
+  renderHistory();
+  renderSavedVoices();
+});
+
+// ========== Theme ==========
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme');
+  setTheme(current === 'dark' ? 'light' : 'dark');
+}
+function setTheme(t) {
+  document.documentElement.setAttribute('data-theme', t);
+  localStorage.setItem('mimo_theme', t);
+  document.getElementById('themeBtn').textContent = t === 'dark' ? '☀' : '☾';
+}
+
+// ========== Tabs ==========
+function switchTab(i) {
+  document.querySelectorAll('.tab').forEach((t, j) => t.classList.toggle('active', j === i));
+  document.querySelectorAll('.tab-content').forEach((c, j) => c.classList.toggle('active', j === i));
+}
+
+// ========== Toast ==========
+function toast(msg, type = 'info') {
+  const el = document.createElement('div');
+  el.className = `toast toast-${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ========== API Helpers ==========
+function getKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  localStorage.setItem('mimo_api_key', key);
+  return key;
+}
+
+async function callTTSApi(model, messages, audioOpts, signal) {
+  const key = getKey();
+  if (!key) { toast('请先输入 API Key', 'error'); throw new Error('No key'); }
+  const resp = await fetch(`${API_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'api-key': key },
+    body: JSON.stringify({ model, messages, audio: audioOpts }),
+    signal
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`API Error ${resp.status}: ${err}`);
+  }
+  const data = await resp.json();
+  const audioData = data.choices?.[0]?.message?.audio?.data;
+  if (!audioData) throw new Error('No audio data in response');
+  return base64ToBlob(audioData, audioOpts.format === 'wav' ? 'audio/wav' : 'audio/mpeg');
+}
+
+function base64ToBlob(b64, mime) {
+  const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+  return new Blob([bytes], { type: mime });
+}
+
+function getExt(format) {
+  return format === 'wav' ? 'wav' : format === 'mp3' ? 'mp3' : 'pcm';
+}
+
+function playAudio(blob, containerId, downloadBtnId) {
+  if (lastAudioUrl) URL.revokeObjectURL(lastAudioUrl);
+  lastAudioBlob = blob;
+  lastAudioUrl = URL.createObjectURL(blob);
+  const container = document.getElementById(containerId);
+  container.innerHTML = `<audio controls autoplay style="width:100%;border-radius:8px;margin-top:8px;" src="${lastAudioUrl}"></audio>`;
+  if (downloadBtnId) document.getElementById(downloadBtnId).classList.remove('hidden');
+}
+
+function downloadLastAudio() {
+  if (!lastAudioBlob) return;
+  const a = document.createElement('a');
+  a.href = lastAudioUrl;
+  a.download = `mimo_tts_${Date.now()}.${lastAudioExt}`;
+  a.click();
+}
+
+// ========== Test Connection ==========
+async function testConnection() {
+  try {
+    toast('正在测试连接...', 'info');
+    const blob = await callTTSApi('mimo-v2.5-tts', [
+      { role: 'user', content: '用友好的语气说一句话' },
+      { role: 'assistant', content: '你好，很高兴认识你！' }
+    ], { format: 'wav', voice: 'mimo_default' });
+    toast('连接成功！', 'success');
+    playAudio(blob, 'ttsPlayer', 'ttsDownload');
+  } catch (e) {
+    toast('连接失败: ' + e.message, 'error');
+  }
+}
+
+async function testLLMConnection() {
+  const baseUrl = document.getElementById('llmBaseUrl').value.trim();
+  const apiKey = document.getElementById('llmApiKey').value.trim();
+  const model = document.getElementById('llmModel').value.trim();
+  if (!baseUrl || !apiKey || !model) {
+    toast('请先填写 LLM API 配置', 'error'); return;
+  }
+  const btn = document.getElementById('llmTestBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+  try {
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: '回复"连接成功"两个字' }],
+        max_tokens: 10
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) {
+      const errMsg = data?.error?.message || `HTTP ${resp.status}`;
+      throw new Error(errMsg);
+    }
+    toast('LLM 连接成功: ' + (data.choices?.[0]?.message?.content?.trim() || ''), 'success');
+  } catch (e) {
+    toast('LLM 连接失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '测试LLM';
+  }
+}
+
+// ========== Tab 1: TTS ==========
+function updateCharCount(el, id) {
+  document.getElementById(id).textContent = el.value.length;
+}
+
+async function generateTTS() {
+  const text = document.getElementById('ttsText').value.trim();
+  if (!text) { toast('请输入合成文本', 'error'); return; }
+  const voice = document.getElementById('ttsVoice').value;
+  const format = document.getElementById('ttsFormat').value;
+  const style = document.getElementById('ttsStyle').value.trim();
+  lastAudioExt = getExt(format);
+  const btn = document.getElementById('ttsBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 生成中...';
+  try {
+    const messages = [];
+    if (style) messages.push({ role: 'user', content: style });
+    messages.push({ role: 'assistant', content: text });
+    const blob = await callTTSApi('mimo-v2.5-tts', messages, { format, voice });
+    playAudio(blob, 'ttsPlayer', 'ttsDownload');
+    addHistory('TTS', text.slice(0, 50), voice);
+    toast('生成成功', 'success');
+  } catch (e) {
+    toast('生成失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '生成语音';
+  }
+}
+
+// ========== Tab 2: VoiceDesign ==========
+function appendVDTag(tag) {
+  const el = document.getElementById('vdDesc');
+  el.value = (el.value ? el.value + ' ' : '') + tag;
+  updateCharCount(el, 'vdCharCount');
+}
+
+async function generateVD() {
+  const desc = document.getElementById('vdDesc').value.trim();
+  const text = document.getElementById('vdText').value.trim();
+  if (!desc) { toast('请输入音色描述', 'error'); return; }
+  if (!text) { toast('请输入参考文本', 'error'); return; }
+  const format = document.getElementById('vdFormat').value;
+  lastAudioExt = getExt(format);
+  const btn = document.getElementById('vdBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 生成中...';
+  try {
+    const blob = await callTTSApi('mimo-v2.5-tts-voicedesign', [
+      { role: 'user', content: desc },
+      { role: 'assistant', content: text }
+    ], { format });
+    playAudio(blob, 'vdPlayer', 'vdDownload');
+    addHistory('VoiceDesign', desc.slice(0, 50), '-');
+    toast('生成成功', 'success');
+  } catch (e) {
+    toast('生成失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '生成预览';
+  }
+}
+
+function saveVDVoice() {
+  const desc = document.getElementById('vdDesc').value.trim();
+  if (!desc) { toast('请先填写音色描述', 'error'); return; }
+  savedVoices.push({ desc, time: Date.now() });
+  localStorage.setItem('mimo_voices', JSON.stringify(savedVoices));
+  renderSavedVoices();
+  toast('音色已保存', 'success');
+}
+
+function renderSavedVoices() {
+  const el = document.getElementById('savedVoices');
+  if (!savedVoices.length) { el.innerHTML = '<p style="color:var(--text2);font-size:13px;">暂无保存的音色</p>'; return; }
+  el.innerHTML = savedVoices.map((v, i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
+      <span style="flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(v.desc)}</span>
+      <button class="btn btn-sm btn-secondary" onclick="loadVDVoice(${i})">加载</button>
+      <button class="btn-icon" onclick="deleteVDVoice(${i})">&#10005;</button>
+    </div>
+  `).join('');
+}
+
+function loadVDVoice(i) {
+  document.getElementById('vdDesc').value = savedVoices[i].desc;
+  updateCharCount(document.getElementById('vdDesc'), 'vdCharCount');
+  toast('已加载音色描述', 'info');
+}
+function deleteVDVoice(i) {
+  savedVoices.splice(i, 1);
+  localStorage.setItem('mimo_voices', JSON.stringify(savedVoices));
+  renderSavedVoices();
+}
+
+// ========== Tab 3: VoiceClone ==========
+let cloneBase64 = null;
+let cloneMime = '';
+
+function handleCloneDrop(e) {
+  e.preventDefault();
+  e.target.closest('.drop-zone').classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) processCloneFile(file);
+}
+function handleCloneFile(input) {
+  if (input.files[0]) processCloneFile(input.files[0]);
+}
+function processCloneFile(file) {
+  const valid = ['audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/x-flac', 'audio/mp3'];
+  if (!valid.some(t => file.type.includes(t) || file.name.match(/\.(mp3|wav|flac)$/i))) {
+    toast('仅支持 MP3/WAV/FLAC 格式', 'error'); return;
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    toast('文件过大（Base64 后需不超过 10MB）', 'error'); return;
+  }
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const arr = e.target.result;
+    const bytes = new Uint8Array(arr);
+    let binary = '';
+    bytes.forEach(b => binary += String.fromCharCode(b));
+    cloneBase64 = btoa(binary);
+    if (file.name.endsWith('.wav')) cloneMime = 'audio/wav';
+    else if (file.name.endsWith('.flac')) cloneMime = 'audio/flac';
+    else cloneMime = 'audio/mpeg';
+    document.getElementById('cloneFileInfo').classList.remove('hidden');
+    document.getElementById('cloneFileName').textContent = file.name;
+    document.getElementById('cloneFileSize').textContent = (file.size / 1024).toFixed(1) + ' KB';
+    const url = URL.createObjectURL(file);
+    document.getElementById('clonePreview').innerHTML = `<audio controls style="width:100%;margin-top:4px;border-radius:8px;" src="${url}"></audio>`;
+  };
+  reader.readAsArrayBuffer(file);
+}
+function clearCloneFile() {
+  cloneBase64 = null; cloneMime = '';
+  document.getElementById('cloneFileInfo').classList.add('hidden');
+  document.getElementById('cloneFile').value = '';
+}
+
+async function generateClone() {
+  const text = document.getElementById('cloneText').value.trim();
+  if (!text) { toast('请输入合成文本', 'error'); return; }
+  if (!cloneBase64) { toast('请先上传音频样本', 'error'); return; }
+  const style = document.getElementById('cloneStyle').value.trim();
+  const format = document.getElementById('cloneFormat').value;
+  lastAudioExt = getExt(format);
+  const btn = document.getElementById('cloneBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 生成中...';
+  try {
+    const messages = [];
+    if (style) messages.push({ role: 'user', content: style });
+    else messages.push({ role: 'user', content: '' });
+    messages.push({ role: 'assistant', content: text });
+    const blob = await callTTSApi('mimo-v2.5-tts-voiceclone', messages, {
+      format,
+      voice: `data:${cloneMime};base64,${cloneBase64}`
+    });
+    playAudio(blob, 'clonePlayer', 'cloneDownload');
+    addHistory('VoiceClone', text.slice(0, 50), '克隆');
+    toast('生成成功', 'success');
+  } catch (e) {
+    toast('生成失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '克隆生成';
+  }
+}
+
+// ========== Tab 4: Novel Reading ==========
+function handleNovelDrop(e) {
+  e.preventDefault();
+  e.target.closest('.drop-zone').classList.remove('dragover');
+  var file = e.dataTransfer.files[0];
+  if (file && file.name.endsWith('.txt')) {
+    createNewProject(file);
+  } else {
+    toast('请拖入 TXT 文件', 'error');
+  }
+}
+
+// 在已有项目中导入 TXT
+async function importTxtToProject(input) {
+  var file = input.files[0];
+  if (!file) return;
+  if (!file.name.endsWith('.txt')) { toast('请上传 TXT 文件', 'error'); return; }
+  try {
+    var buf = await file.arrayBuffer();
+    var encoding = detectEncoding(new Uint8Array(buf));
+    var text = new TextDecoder(encoding).decode(buf);
+    globalCharacters = {};
+    synthCache.clear();
+    novelAudioBlobs = {};
+    splitChapters(text, currentProjectName);
+    document.getElementById('novelTitle').textContent = currentProjectName;
+    var tc = chapters.reduce(function(s, c) { return s + c.content.length; }, 0);
+    document.getElementById('novelStats').textContent = '共 ' + chapters.length + ' 章 / ' + tc.toLocaleString() + ' 字';
+    currentChapter = 0;
+    renderChapterList();
+    showChapter(0);
+    await saveProject(true);
+    toast('导入成功，共 ' + chapters.length + ' 章', 'success');
+  } catch (e) {
+    toast('导入失败: ' + e.message, 'error');
+  }
+  input.value = ''; // 重置以便重新选择同一文件
+}
+
+function detectEncoding(bytes) {
+  // Check BOM
+  if (bytes[0] === 0xFF && bytes[1] === 0xFE) return 'utf-16le';
+  if (bytes[0] === 0xFE && bytes[1] === 0xFF) return 'utf-16be';
+  if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) return 'utf-8';
+  // 没有 BOM：GBK 字节经常碰巧通过 UTF-8 校验产生乱码
+  // 所以对两种编码都解码，比较哪种更像正常中文
+  try {
+    var sample = bytes.slice(0, Math.min(bytes.length, 10000));
+    var utf8Text = new TextDecoder('utf-8').decode(sample);
+    var gbText = new TextDecoder('gb18030').decode(sample);
+    // 纯 ASCII 走 UTF-8
+    if (sample.every(function(b) { return b < 0x80; })) return 'utf-8';
+    // 统计中文标点出现次数（乱码里几乎不会出现这些）
+    var punct = '。？！，、；：""\'\'（）—';
+    var utf8Score = 0, gbScore = 0;
+    for (var i = 0; i < punct.length; i++) {
+      utf8Score += utf8Text.split(punct[i]).length - 1;
+      gbScore += gbText.split(punct[i]).length - 1;
+    }
+    // GB18030 解码出的标点明显更多 → 说明是 GBK 编码
+    if (gbScore > utf8Score * 2) return 'gb18030';
+    return 'utf-8';
+  } catch {
+    return 'gb18030';
+  }
+}
+
+function splitChapters(text, filename) {
+  chapters = [];
+  const title = filename.replace(/\.txt$/i, '');
+
+  // 单次扫描找章节位置（不用 split+前瞻，大文件会卡死）
+  const chapFind = /(?:^|\n)(\s*(?:第\s*[0-9一二三四五六七八九十百千]+\s*[章回节篇卷]|[Cc]hapter\s+\d+|(?:序[章幕篇]?|[楔][子]?|引[子言]?|尾[声]?|番外)\s*[:：\s]|\d{1,4}\s*[\.、．]\s*\S))/g;
+  const positions = [];
+  let m;
+  while ((m = chapFind.exec(text)) !== null) {
+    positions.push(m.index + m[0].indexOf(m[1].trimStart()));
+  }
+
+  if (positions.length <= 1) {
+    // 没找到章节标记，尝试按连续空行分段
+    const blocks = text.split(/\n{2,}/).filter(function(s) { return s.trim(); });
+    if (blocks.length > 1) {
+      for (let i = 0; i < blocks.length; i++) {
+        var firstLine = blocks[i].trim().split('\n')[0].trim();
+        var label = firstLine.length <= 30 ? firstLine : ('段落 ' + (i + 1));
+        chapters.push({ title: label, content: blocks[i].trim(), checked: true, mood: null });
+      }
+    } else {
+      chapters.push({ title: title, content: text.trim(), checked: true, mood: null });
+    }
+  } else {
+    for (let i = 0; i < positions.length; i++) {
+      var start = positions[i];
+      var end = i + 1 < positions.length ? positions[i + 1] : text.length;
+      var part = text.slice(start, end).trim();
+
+      // 提取章节标题：取首行
+      var rawTitle = part.split('\n')[0].trim();
+      // 尝试匹配标准章节标题
+      var titleMatch = rawTitle.match(/^(第\s*[0-9一二三四五六七八九十百千]+\s*[章回节篇卷](?:\s*[\.、．:：]?\s*.*)?|[Cc]hapter\s+\d+\s*[\.、．:]?\s*.*|(?:序[章幕篇]?|[楔][子]?|引[子言]?|尾[声]?|番外)\s*[:：\s]?\s*.*)/);
+      var chTitle = titleMatch ? titleMatch[0].trim() : rawTitle.slice(0, 50);
+      if (!chTitle || chTitle.length > 50) {
+        chTitle = '第' + (i + 1) + '章';
+      }
+
+      chapters.push({ title: chTitle, content: part, checked: true, mood: null });
+    }
+  }
+
+  currentProjectName = title;
+  document.getElementById('novelTitle').textContent = title;
+  var totalChars = chapters.reduce(function(s, c) { return s + c.content.length; }, 0);
+  document.getElementById('novelStats').textContent = '共 ' + chapters.length + ' 章 / ' + totalChars.toLocaleString() + ' 字';
+  currentChapter = 0;
+  renderChapterList();
+  showChapter(0);
+}
+
+function renderChapterList() {
+  const el = document.getElementById('chapterList');
+  el.innerHTML = chapters.map((ch, i) => {
+    let badges = '';
+    if (ch.script && ch.script.length) {
+      badges += `<span class="ch-mood" style="background:var(--accent);color:#fff;font-size:10px;">${ch.script.length}行</span>`;
+    } else if (ch.mood) {
+      badges += `<span class="ch-mood" style="background:${getMoodColor(ch.mood)};color:#fff;">${esc(ch.mood)}</span>`;
+    }
+    return `<div class="chapter-item ${i === currentChapter ? 'active' : ''}" onclick="showChapter(${i})">
+      <input type="checkbox" ${ch.checked ? 'checked' : ''} onclick="event.stopPropagation();chapters[${i}].checked=this.checked">
+      <span class="ch-title">${esc(ch.title)}</span>
+      ${badges}
+      <span class="ch-meta">${ch.content.length}字</span>
+    </div>`;
+  }).join('');
+}
+
+function showChapter(i) {
+  currentChapter = i;
+  const ch = chapters[i];
+  renderChapterList();
+  renderScriptCards(ch);
+  updateCharList();
+}
+
+var currentSpeakerFilter = '';
+
+function renderScriptCards(ch) {
+  const area = document.getElementById('scriptArea');
+  const filterEl = document.getElementById('speakerFilter');
+
+  if (!ch.script || !ch.script.length) {
+    // 显示原始章节文本，方便预览
+    var rawPreview = esc(ch.content.slice(0, 5000)) + (ch.content.length > 5000 ? '\n\n... (共' + ch.content.length + '字，已截断)' : '');
+    area.innerHTML = '<div style="padding:16px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">' +
+        '<p style="font-size:14px;font-weight:600;">' + esc(ch.title) + ' <span style="font-weight:normal;color:var(--text2);font-size:12px;">' + ch.content.length + ' 字</span></p>' +
+        '<span style="font-size:12px;color:var(--text2);">原始文本预览</span>' +
+      '</div>' +
+      '<pre style="font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:break-all;color:var(--text);background:var(--bg);padding:16px;border-radius:8px;border:1px solid var(--border);max-height:70vh;overflow-y:auto;">' + rawPreview + '</pre>' +
+      '<p style="font-size:12px;color:var(--text2);margin-top:12px;text-align:center;">请在左栏勾选章节后点击「情绪分析」生成脚本</p></div>';
+    if (filterEl) filterEl.innerHTML = '<option value="">全部</option>';
+    return;
+  }
+
+  // 收集所有说话者，填充筛选下拉
+  var speakers = [];
+  var seen = {};
+  ch.script.forEach(function(item) {
+    if (!seen[item.speaker]) { seen[item.speaker] = true; speakers.push(item.speaker); }
+  });
+  if (filterEl) {
+    filterEl.innerHTML = '<option value="">全部 (' + ch.script.length + '行)</option>' +
+      speakers.map(function(s) {
+        var count = ch.script.filter(function(i) { return i.speaker === s; }).length;
+        return '<option value="' + esc(s) + '"' + (s === currentSpeakerFilter ? ' selected' : '') + '>' + esc(s) + ' (' + count + ')</option>';
+      }).join('');
+  }
+
+  // 渲染脚本卡片
+  let html = '';
+  let visibleCount = 0;
+  for (let idx = 0; idx < ch.script.length; idx++) {
+    const item = ch.script[idx];
+
+    // 筛选
+    if (currentSpeakerFilter && item.speaker !== currentSpeakerFilter) continue;
+    visibleCount++;
+
+    const isNarrator = item.speaker === '旁白';
+    const va = item._voiceAssignment;
+    const voiceLabel = isNarrator ? '旁白'
+      : (va && va.type === 'voicedesign' ? 'VoiceDesign' : (va && va.type === 'needs_design' ? '待设计' : '未分配'));
+
+    const emoOptions = ['中性','不解','催促','反问','口是心非','哀伤','哭腔','哭诉','哽咽','嘲讽','嘶吼','天真','失落','委屈哭','害怕','小声说','小声请求','开朗','微疯','微请求','怒其不争','恐惧','恭敬','悲伤','惊讶','感谢','愤怒','撒娇','明媚','气急','温柔','生气','疑惑','疑问','自我怀疑','花痴','苦涩','训斥','质问','轻蔑','阴森','霸气','骂街','高兴']
+      .map(function(e) { return '<option value="' + e + '"' + (e === item.speaker_emo ? ' selected' : '') + '>' + e + '</option>'; }).join('');
+
+    html += '<div class="script-card" id="sc-' + idx + '">' +
+      '<div class="sc-num">' + (idx + 1) + '</div>' +
+      '<div class="sc-body">' +
+        '<div class="sc-speaker ' + (isNarrator ? 'narrator' : 'character') + '">' +
+          esc(item.speaker) +
+          ' <span style="font-size:10px;padding:1px 4px;border-radius:3px;background:' + (isNarrator ? 'var(--tag-bg)' : 'rgba(0,113,227,.12)') + ';font-weight:normal;">' + esc(voiceLabel) + '</span>' +
+        '</div>' +
+        '<div class="sc-content" ondblclick="startEditContent(this,' + idx + ')" title="双击编辑">' + esc(item.content) + '</div>' +
+        '<div class="sc-controls">' +
+          '<span style="font-size:11px;color:var(--text2);">情绪</span>' +
+          '<select onchange="updateScriptItem(' + idx + ',\'speaker_emo\',this.value)" style="max-width:80px;">' + emoOptions + '</select>' +
+          '<span style="font-size:11px;color:var(--text2);margin-left:4px;">停顿</span>' +
+          '<input type="number" value="' + (item.delay || 500) + '" min="0" max="5000" step="100" onchange="updateScriptItem(' + idx + ',\'delay\',+this.value)" style="width:56px;">' +
+          '<span style="font-size:11px;color:var(--text2);">ms</span>' +
+        '</div>' +
+      '</div>' +
+      '<div class="sc-actions">' +
+        '<button onclick="playScriptLine(' + idx + ')" title="试听">&#9654;</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  if (currentSpeakerFilter) {
+    html = '<div style="font-size:12px;color:var(--text2);padding:4px 0;margin-bottom:4px;">显示「' + esc(currentSpeakerFilter) + '」共 ' + visibleCount + ' 行 <a href="#" onclick="filterBySpeaker(\'\');return false;" style="color:var(--accent);">清除筛选</a></div>' + html;
+  }
+  area.innerHTML = html;
+}
+
+function filterBySpeaker(speaker) {
+  currentSpeakerFilter = speaker;
+  if (currentChapter >= 0 && chapters[currentChapter]) {
+    renderScriptCards(chapters[currentChapter]);
+  }
+}
+
+function updateScriptItem(idx, field, value) {
+  if (currentChapter < 0 || !chapters[currentChapter] || !chapters[currentChapter].script) return;
+  var item = chapters[currentChapter].script[idx];
+  if (item) item[field] = value;
+}
+
+function startEditContent(el, idx) {
+  if (el.querySelector('textarea')) return;
+  var ch = chapters[currentChapter];
+  if (!ch || !ch.script || !ch.script[idx]) return;
+  var item = ch.script[idx];
+  var oldText = item.content;
+  el.innerHTML = '<textarea style="width:100%;min-height:40px;font-size:13px;line-height:1.5;" onblur="finishEditContent(this,' + idx + ')">' + esc(oldText) + '</textarea>';
+  var ta = el.querySelector('textarea');
+  ta.focus();
+  ta.setSelectionRange(ta.value.length, ta.value.length);
+}
+
+function finishEditContent(ta, idx) {
+  var ch = chapters[currentChapter];
+  if (!ch || !ch.script || !ch.script[idx]) return;
+  var newText = ta.value.trim();
+  ch.script[idx].content = newText;
+  var container = ta.parentNode;
+  container.textContent = newText;
+}
+
+function saveScriptEdits() {
+  toast('脚本修改已保存', 'success');
+}
+
+function filterChapters(keyword) {
+  var items = document.querySelectorAll('#chapterList .chapter-item');
+  items.forEach(function(el) {
+    var title = el.querySelector('.ch-title');
+    el.style.display = (!keyword || (title && title.textContent.toLowerCase().includes(keyword.toLowerCase()))) ? '' : 'none';
+  });
+}
+
+function batchSetDelay() {
+  if (currentChapter < 0 || !chapters[currentChapter] || !chapters[currentChapter].script) { toast('请先选择有脚本的章节', 'error'); return; }
+  var delay = prompt('批量设置旁白停顿时长（毫秒）:', '500');
+  if (delay === null) return;
+  var ms = parseInt(delay) || 500;
+  chapters[currentChapter].script.forEach(function(item) { if (item.speaker === '旁白') item.delay = ms; });
+  renderScriptCards(chapters[currentChapter]);
+  toast('旁白停顿已设为 ' + ms + 'ms', 'success');
+}
+
+async function playScriptLine(idx) {
+  if (currentChapter < 0) return;
+  var ch = chapters[currentChapter];
+  var item = ch.script && ch.script[idx];
+  if (!item) return;
+  var voice = document.getElementById('novelVoice').value;
+  var va = item._voiceAssignment;
+  try {
+    var style = buildStyleInstruction(item);
+    var blob;
+    if (va && va.type === 'voicedesign') {
+      var vdMsgs = [];
+      if (style) {
+        vdMsgs.push({ role: 'user', content: va.prompt + '. Style for this line: ' + style });
+      } else {
+        vdMsgs.push({ role: 'user', content: va.prompt });
+      }
+      vdMsgs.push({ role: 'assistant', content: item.content });
+      blob = await callTTSApi('mimo-v2.5-tts-voicedesign', vdMsgs, { format: 'wav' });
+    } else {
+      var messages = [];
+      if (style) messages.push({ role: 'user', content: style });
+      messages.push({ role: 'assistant', content: item.content });
+      var pv = (va && va.type === 'preset') ? va.voice : voice;
+      blob = await callTTSApi('mimo-v2.5-tts', messages, { format: 'wav', voice: pv });
+    }
+    var url = URL.createObjectURL(blob);
+    new Audio(url).play();
+  } catch (e) {
+    toast('试听失败: ' + e.message, 'error');
+  }
+}
+
+function selectPresetVoice(v) {
+  document.getElementById('novelVoice').value = v;
+  toast('旁白音色已设为: ' + v, 'info');
+}
+
+function updateCharList() {
+  var el = document.getElementById('charList');
+  var countEl = document.getElementById('charCount');
+  var chars = Object.values(globalCharacters);
+  countEl.textContent = chars.length;
+  if (!chars.length) {
+    el.innerHTML = '<p style="color:var(--text2);font-size:12px;">分析后显示角色</p>';
+    return;
+  }
+  el.innerHTML = chars.map(function(c) {
+    var tagColor = c.role_tag === '重要角色' ? 'var(--accent)' : 'var(--text2)';
+    var voiceHtml = c.voiceDesignPrompt
+      ? '<div class="cc-voice has-design" title="' + esc(c.voiceDesignPrompt) + '">VD: ' + esc(c.voiceDesignPrompt.slice(0, 50)) + (c.voiceDesignPrompt.length > 50 ? '...' : '') + '</div>'
+      : '<div class="cc-voice" style="color:var(--danger);border-left:2px solid var(--danger);">待设计音色 <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();designSingleVoice(\'' + esc(c.name) + '\')" style="font-size:10px;padding:1px 5px;margin-left:4px;">设计</button></div>';
+    return '<div class="char-card">' +
+      '<div class="cc-name">' + esc(c.name) + ' <span style="font-size:10px;color:' + tagColor + ';">' + esc(c.role_tag) + '</span></div>' +
+      '<div class="cc-info">' + esc(c.gender) + ' · ' + esc(c.age) + ' · 出现' + c.chapters.length + '章</div>' +
+      '<div class="cc-info">' + esc((c.personality || '').slice(0, 40)) + '</div>' +
+      voiceHtml +
+    '</div>';
+  }).join('');
+}
+
+function selectAllChapters(v) {
+  chapters.forEach(c => c.checked = v);
+  renderChapterList();
+}
+
+function selectUnanalyzedChapters() {
+  var count = 0;
+  chapters.forEach(function(c) {
+    if (!c.script || !c.script.length) { c.checked = true; count++; }
+    else { c.checked = false; }
+  });
+  renderChapterList();
+  toast('已选中 ' + count + ' 个未分析章节', 'info');
+}
+
+function getMoodColor(mood) {
+  const colors = {
+    '紧张': '#e74c3c', '平静': '#3498db', '悲伤': '#8e44ad', '开心': '#f39c12',
+    '愤怒': '#c0392b', '恐惧': '#7f8c8d', '温馨': '#e67e22', '悬疑': '#2c3e50',
+    '浪漫': '#e91e63', '激动': '#ff5722', '沉重': '#607d8b'
+  };
+  for (const [k, v] of Object.entries(colors)) {
+    if (mood && mood.includes(k)) return v;
+  }
+  return '#6c757d';
+}
+
+// ========== Character Management ==========
+// 角色名标准化：去除首尾空白和尾部标点
+function normalizeCharName(name) {
+  return name.trim().replace(/[。！？，、：；"'""''…\.\,\!\?\:\;\"\'\s]+$/, '').trim();
+}
+
+// 将章节分析的角色合并到全局注册表
+function mergeChapterCharacters(ch, chapterIdx) {
+  if (!ch.characterMap) return;
+
+  // 建立 原始名 → 标准化名 的映射
+  const nameMapping = {};
+
+  for (const [rawName, info] of Object.entries(ch.characterMap)) {
+    if (rawName === '旁白') continue;
+    const normName = normalizeCharName(rawName);
+    nameMapping[rawName] = normName;
+
+    if (!globalCharacters[normName]) {
+      globalCharacters[normName] = {
+        name: normName,
+        gender: info.gender || '未知',
+        age: info.age || '',
+        role_tag: info.role_tag || '路人角色',
+        personality: info.personality || '',
+        timbre: info.timbre || '',
+        voiceDesignPrompt: null,
+        ttsStyle: null,
+        chapters: [chapterIdx]
+      };
+    } else {
+      if (!globalCharacters[normName].chapters.includes(chapterIdx)) {
+        globalCharacters[normName].chapters.push(chapterIdx);
+      }
+      if (info.personality && info.personality.length > (globalCharacters[normName].personality || '').length) {
+        globalCharacters[normName].personality = info.personality;
+      }
+      if (info.timbre) globalCharacters[normName].timbre = info.timbre;
+    }
+  }
+
+  // 同步更新脚本中的 speaker 名称为标准化名称
+  if (ch.script) {
+    for (const item of ch.script) {
+      if (item.speaker === '旁白') continue;
+      var norm = normalizeCharName(item.speaker);
+      if (nameMapping[item.speaker]) norm = nameMapping[item.speaker];
+      if (norm !== item.speaker) item.speaker = norm;
+    }
+  }
+}
+
+// 调用 LLM 为角色生成音色设计提示词
+async function generateVoiceDesignPrompts(characters, baseUrl, apiKey, model, onProgress) {
+  const needsPrompt = characters.filter(c => !c.voiceDesignPrompt);
+  if (!needsPrompt.length) return;
+
+  // 按批次发送（每批最多10个角色，避免 prompt 过长）
+  const BATCH_SIZE = 10;
+  var designed = 0;
+  for (let batch = 0; batch < needsPrompt.length; batch += BATCH_SIZE) {
+    const batchChars = needsPrompt.slice(batch, batch + BATCH_SIZE);
+    if (onProgress) onProgress(designed, needsPrompt.length);
+    const charDescs = batchChars.map(c =>
+      `- ${c.name}: ${c.gender}, ${c.age}, ${c.role_tag}, 性格:${c.personality}, 音色:${c.timbre}`
+    ).join('\n');
+
+    const prompt = `你是有声书音色设计师。根据以下角色信息，为每个角色生成 MiMo TTS VoiceDesign 音色描述提示词。
+
+要求：
+- 每个提示词 1-3 句话，用英文描述
+- 只描述物理声音特征（声线基底），不要包含任何情绪或情感描述
+- 涵盖：性别/年龄感/音色质感/音高/共鸣特点
+- 严禁包含语速描述（不要写 slow/fast/deliberate/quickly/从容/缓慢/急促 等），语速由逐句控制
+- 严禁包含情绪基调（不要写 cheerful/melancholy/warm tone 等），情绪由逐句控制
+- 不要写混响/回声等后期处理词
+- 重要角色的声音要有辨识度
+- 路人角色用大众刻板印象即可（如老人要苍老沙哑，不要用年轻人声音）
+- 原因：音色设计只管"这是谁的声音基底"，情绪和语速由合成时逐句情感标签独立控制
+
+返回纯 JSON（不要 markdown），格式：
+{"角色名": "voice design prompt", ...}
+
+角色列表：
+${charDescs}`;
+
+    try {
+      const resp = await fetch(`${baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.4
+        })
+      });
+      if (!resp.ok) { console.error('Voice design API error:', resp.status); continue; }
+      const data = await resp.json();
+      let raw = data.choices?.[0]?.message?.content?.trim() || '';
+      const parsed = tryParseJson(raw);
+      for (const c of batchChars) {
+        if (parsed[c.name]) {
+          // 过滤掉语速相关描述，语速由逐句情绪单独控制
+          let cleaned = parsed[c.name]
+            .replace(/,?\s*(slow|fast|quick|deliberate|measured|unhurried|leisurely|rapid|brisk|hurried|rushed|calm|relaxed)\s*(and\s*)?(pace|speech|rhythm)?/gi, '')
+            .replace(/,?\s*(speaks?\s*)?(very\s*)?(slowly|quickly|rapidly|fast|deliberately|calmly)/gi, '')
+            .replace(/,?\s*(at\s*a\s*)(slow|measured|deliberate|leisurely|calm|relaxed)\s*pace/gi, '')
+            .replace(/,?\s*(语速|说话)\s*(很|极|非常|比较|稍)?\s*(慢|快|缓慢|急促|平稳)/g, '')
+            .replace(/,?\s*(说话|语调)\s*(从容|不紧不慢|慢条斯理)/g, '')
+            .replace(/\.\s*,/g, '.').replace(/,\s*\./g, '.').replace(/,\s*,/g, ',')
+            .replace(/\.\s*\./g, '.').trim();
+          // 确保首字母大写、结尾有标点
+          if (cleaned && !/[.!?]$/.test(cleaned)) cleaned += '.';
+          globalCharacters[c.name].voiceDesignPrompt = cleaned;
+          globalCharacters[c.name].ttsStyle = cleaned;
+          designed++;
+          console.log('[音色设计]', c.name, '←', cleaned.slice(0, 60));
+        } else {
+          console.warn('[音色设计] LLM 未返回:', c.name);
+        }
+      }
+      if (onProgress) onProgress(designed, needsPrompt.length);
+    } catch (e) {
+      console.error('[音色设计] 批次失败:', e);
+    }
+  }
+  if (onProgress) onProgress(designed, needsPrompt.length);
+}
+
+// 为角色分配音色（重要角色用 VoiceDesign，路人角色用预设音色）
+function assignCharacterVoice(char) {
+  if (char.voiceDesignPrompt) {
+    return { type: 'voicedesign', prompt: char.voiceDesignPrompt, style: char.ttsStyle };
+  }
+  // 路人角色 → 直接用预设音色，不走 VoiceDesign
+  return { type: 'preset', voice: matchPresetVoice(char) };
+}
+
+// 根据角色特征匹配预设音色
+function matchPresetVoice(char) {
+  var g = (char.gender || '').toLowerCase();
+  if (g === '男' || g === 'male') {
+    var presets = ['苏打', '白桦', 'Milo', 'Dean'];
+    return presets[Math.abs(hashStr(char.name)) % presets.length];
+  }
+  if (g === '女' || g === 'female') {
+    var presets = ['冰糖', '茉莉', 'Mia', 'Chloe'];
+    return presets[Math.abs(hashStr(char.name)) % presets.length];
+  }
+  return 'mimo_default';
+}
+
+function hashStr(s) {
+  var h = 0;
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) - h + s.charCodeAt(i)) | 0; }
+  return h;
+}
+
+// 更新脚本中角色的音色分配（每次重新分配，确保音色提示词更新后能反映最新状态）
+function applyVoiceAssignments(ch) {
+  if (!ch.script) return;
+  for (const item of ch.script) {
+    if (item.speaker === '旁白') continue;
+    const char = globalCharacters[item.speaker];
+    if (char) {
+      item._voiceAssignment = assignCharacterVoice(char);
+    }
+  }
+}
+
+// 确保所有角色都有音色提示词（合成前调用）
+async function ensureAllVoicesDesigned() {
+  var needDesign = Object.values(globalCharacters).filter(function(c) { return !c.voiceDesignPrompt; });
+  if (!needDesign.length) return;
+  var baseUrl = document.getElementById('llmBaseUrl').value.trim();
+  var apiKey = document.getElementById('llmApiKey').value.trim();
+  var model = document.getElementById('llmModel').value.trim();
+  if (!baseUrl || !apiKey || !model) {
+    toast('有角色缺少音色，请配置 LLM API 后重新生成', 'error');
+    throw new Error('LLM API not configured');
+  }
+  toast('正在为 ' + needDesign.length + ' 个角色设计音色...', 'info');
+  await generateVoiceDesignPrompts(needDesign, baseUrl, apiKey, model);
+  // 重新分配
+  for (var ch of chapters) applyVoiceAssignments(ch);
+  updateCharList();
+  var designed = needDesign.filter(function(c) { return c.voiceDesignPrompt; }).length;
+  if (designed < needDesign.length) {
+    toast('部分角色音色设计失败 (' + designed + '/' + needDesign.length + ')', 'error');
+  }
+}
+
+// 显示角色管理窗口
+function showCharacterModal() {
+  const modal = document.getElementById('characterModal');
+  const content = document.getElementById('characterModalContent');
+  const chars = Object.values(globalCharacters);
+
+  if (!chars.length) {
+    content.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px;">还没有角色数据，请先进行情绪分析</p>';
+  } else {
+    content.innerHTML = chars.map(c => {
+      const voiceInfo = c.voiceDesignPrompt
+        ? `<div style="margin-top:4px;padding:6px;background:var(--bg);border-radius:6px;font-size:12px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;">
+              <div style="color:var(--accent);font-weight:500;">VoiceDesign 提示词：</div>
+              <button class="btn btn-sm btn-secondary" onclick="auditionCharacterVoice('${esc(c.name)}')" style="font-size:10px;padding:2px 8px;">试听</button>
+            </div>
+            <div style="color:var(--text);margin-top:2px;">${esc(c.voiceDesignPrompt)}</div>
+           </div>`
+        : `<div style="margin-top:4px;"><button class="btn btn-sm btn-primary" onclick="designSingleVoice('${esc(c.name)}')">生成音色提示词</button></div>`;
+      const tagColor = c.role_tag === '重要角色' ? 'var(--accent)' : 'var(--text2)';
+      return `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <b style="font-size:14px;">${esc(c.name)}</b>
+          <span style="font-size:11px;color:${tagColor};">${esc(c.role_tag)}</span>
+          <span style="font-size:12px;color:var(--text2);">${esc(c.gender)} · ${esc(c.age)}</span>
+          <span style="font-size:11px;color:var(--text2);margin-left:auto;">出现于 ${c.chapters.length} 章</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-top:4px;">性格: ${esc(c.personality)}</div>
+        <div style="font-size:12px;color:var(--text2);">音色: ${esc(c.timbre)}</div>
+        ${voiceInfo}
+      </div>`;
+    }).join('');
+  }
+
+  modal.classList.remove('hidden');
+}
+
+// 试听角色音色
+async function auditionCharacterVoice(name) {
+  const char = globalCharacters[name];
+  if (!char || !char.voiceDesignPrompt) { toast('该角色没有音色提示词', 'error'); return; }
+  const testText = '你好，很高兴认识你。今天天气真不错，出去走走吧。';
+  toast(`正在试听 ${name} 的音色...`, 'info');
+  try {
+    const messages = [
+      { role: 'user', content: char.voiceDesignPrompt },
+      { role: 'assistant', content: testText }
+    ];
+    const blob = await callTTSApi('mimo-v2.5-tts-voicedesign', messages, { format: 'wav' });
+    const url = URL.createObjectURL(blob);
+    new Audio(url).play();
+    toast(`${name} 试听播放中`, 'success');
+  } catch (e) {
+    toast('试听失败: ' + e.message, 'error');
+  }
+}
+
+function closeCharacterModal() {
+  document.getElementById('characterModal').classList.add('hidden');
+}
+
+// 一键为所有角色生成音色提示词
+async function designAllVoices() {
+  const baseUrl = document.getElementById('llmBaseUrl').value.trim();
+  const apiKey = document.getElementById('llmApiKey').value.trim();
+  const model = document.getElementById('llmModel').value.trim();
+  if (!baseUrl || !apiKey || !model) { toast('请先配置 LLM API', 'error'); return; }
+  // 只为重要角色设计音色，路人角色自动用预设
+  const importantChars = Object.values(globalCharacters).filter(c => c.role_tag === '重要角色' && !c.voiceDesignPrompt);
+  const totalChars = Object.values(globalCharacters).length;
+  if (!importantChars.length) {
+    toast('没有需要设计音色的重要角色（路人角色自动使用预设音色）', 'info');
+    // 即使没有需要设计的，也刷新分配和界面
+    for (const ch of chapters) applyVoiceAssignments(ch);
+    showCharacterModal();
+    return;
+  }
+  toast('正在为 ' + importantChars.length + ' 个重要角色设计音色...', 'info');
+  await generateVoiceDesignPrompts(importantChars, baseUrl, apiKey, model);
+  // 重新应用
+  for (const ch of chapters) applyVoiceAssignments(ch);
+  const designed = importantChars.filter(c => c.voiceDesignPrompt).length;
+  toast(`音色设计完成: ${designed}/${importantChars.length}个重要角色`, designed > 0 ? 'success' : 'error');
+  showCharacterModal();
+}
+
+// 为单个角色生成音色提示词
+async function designSingleVoice(name) {
+  const char = globalCharacters[name];
+  if (!char) return;
+  const baseUrl = document.getElementById('llmBaseUrl').value.trim();
+  const apiKey = document.getElementById('llmApiKey').value.trim();
+  const model = document.getElementById('llmModel').value.trim();
+  if (!baseUrl || !apiKey || !model) { toast('请先配置 LLM API', 'error'); return; }
+  toast(`正在为 ${name} 生成音色...`, 'info');
+  await generateVoiceDesignPrompts([char], baseUrl, apiKey, model);
+  if (char.voiceDesignPrompt) {
+    toast(`${name} 音色生成成功`, 'success');
+    showCharacterModal(); // 刷新
+  } else {
+    toast(`${name} 音色生成失败`, 'error');
+  }
+}
+
+// ========== PCM Audio Helpers ==========
+// MiMo TTS 返回 WAV，我们需要拆出 PCM 数据来拼接
+function wavToPCM(wavBlob) {
+  return wavBlob.arrayBuffer().then(buf => {
+    const view = new DataView(buf);
+    // 解析 WAV header，找到 'data' chunk 的实际偏移
+    let dataOffset = 44;
+    let dataSize = buf.byteLength - 44;
+    if (buf.byteLength > 44) {
+      let offset = 12; // 跳过 RIFF+WAVE
+      while (offset + 8 <= buf.byteLength) {
+        const chunkId = String.fromCharCode(view.getUint8(offset), view.getUint8(offset+1), view.getUint8(offset+2), view.getUint8(offset+3));
+        const chunkSize = view.getUint32(offset + 4, true);
+        if (chunkId === 'data') {
+          dataOffset = offset + 8;
+          dataSize = chunkSize;
+          break;
+        }
+        offset += 8 + chunkSize;
+      }
+    }
+    const numSamples = Math.min(dataSize, buf.byteLength - dataOffset) / 2;
+    const pcm = new Int16Array(numSamples);
+    for (let i = 0; i < numSamples; i++) {
+      pcm[i] = view.getInt16(dataOffset + i * 2, true);
+    }
+    return { pcm, sampleRate: 24000 };
+  });
+}
+
+function makeSilence(ms, sampleRate) {
+  const numSamples = Math.round(sampleRate * ms / 1000);
+  return new Int16Array(numSamples);
+}
+
+function concatPCM(chunks) {
+  let total = 0;
+  for (const c of chunks) total += c.length;
+  const result = new Int16Array(total);
+  let offset = 0;
+  for (const c of chunks) { result.set(c, offset); offset += c.length; }
+  return result;
+}
+
+function pcmToWav(pcm, sampleRate) {
+  const numChannels = 1, bitsPerSample = 16;
+  const byteRate = sampleRate * numChannels * bitsPerSample / 8;
+  const blockAlign = numChannels * bitsPerSample / 8;
+  const dataSize = pcm.length * 2;
+  const buf = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buf);
+  const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numChannels, true);
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, byteRate, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, bitsPerSample, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+  for (let i = 0; i < pcm.length; i++) view.setInt16(44 + i * 2, pcm[i], true);
+  return new Blob([buf], { type: 'audio/wav' });
+}
+
+// ========== Emotion Analysis ==========
+function cleanJsonResponse(raw) {
+  let text = raw.trim();
+  // 1. 去掉 markdown 代码块
+  text = text.replace(/^```(?:json)?\s*\n?/i, '');
+  text = text.replace(/\n?```\s*$/i, '');
+  // 2. 提取第一个 { 到最后一个 } 之间的内容
+  const firstBrace = text.indexOf('{');
+  const lastBrace = text.lastIndexOf('}');
+  if (firstBrace >= 0 && lastBrace > firstBrace) {
+    text = text.slice(firstBrace, lastBrace + 1);
+  }
+  // 3. 预修复尾部逗号（在提取后立即处理，不等 tryParseJson）
+  text = text.replace(/,(\s*[}\]])/g, '$1');
+  return text.trim();
+}
+
+// 尝试修复常见 JSON 语法问题并解析
+function tryParseJson(raw) {
+  var cleaned = cleanJsonResponse(raw);
+  var lastErr = null;
+
+  // 第一次：直接解析清理后的
+  try { return JSON.parse(cleaned); } catch(e) { lastErr = e; }
+
+  // 第二次：修复中文引号（LLM可能返回中文引号）
+  var fixed = cleaned.replace(/[“”„‟〝〞〟]/g, '"')
+                     .replace(/[‘’‚‛]/g, "'");
+  try { return JSON.parse(fixed); } catch(e) { lastErr = e; }
+
+  // 第三次：修复尾部逗号（含跨行情况）
+  fixed = fixed.replace(/,(\s*[}\]])/g, '$1');
+  try { return JSON.parse(fixed); } catch(e) { lastErr = e; }
+
+  // 第四次：修复字符串内的未转义换行符
+  fixed = fixed.replace(/(?<="[^"]*)\n(?=[^"]*")/g, '\\n')
+               .replace(/(?<="[^"]*)\r(?=[^"]*")/g, '\\r')
+               .replace(/(?<="[^"]*)\t(?=[^"]*")/g, '\\t');
+  try { return JSON.parse(fixed); } catch(e) { lastErr = e; }
+
+  // 第五次：同时应用所有修复
+  fixed = cleaned.replace(/[“”„‟〝〞〟]/g, '"')
+                 .replace(/[‘’‚‛]/g, "'")
+                 .replace(/,(\s*[}\]])/g, '$1')
+                 .replace(/(?<="[^"]*)\n(?=[^"]*")/g, '\\n')
+                 .replace(/(?<="[^"]*)\r(?=[^"]*")/g, '\\r')
+                 .replace(/(?<="[^"]*)\t(?=[^"]*")/g, '\\t');
+  try { return JSON.parse(fixed); } catch(e) { lastErr = e; }
+
+  // 第六次：逐字符解析，正确去除所有尾部逗号（不受嵌套影响）
+  fixed = stripTrailingCommas(cleaned);
+  try { return JSON.parse(fixed); } catch(e) { lastErr = e; }
+
+  // 第七次：第六次 + 中文引号修复
+  fixed = stripTrailingCommas(
+    cleaned.replace(/[“”„‟〝〞〟]/g, '"')
+           .replace(/[‘’‚‛]/g, "'")
+  );
+  try { return JSON.parse(fixed); } catch(e) { lastErr = e; }
+
+  throw new Error('JSON 解析失败: ' + lastErr.message + '\n清理后前300字：' + cleaned.slice(0, 300));
+}
+
+// 逐字符扫描，正确去除 JSON 中所有位置的尾部逗号
+function stripTrailingCommas(json) {
+  var result = [];
+  var i = 0, len = json.length;
+  while (i < len) {
+    var ch = json[i];
+    if (ch === '"') {
+      result.push(ch); i++;
+      while (i < len && json[i] !== '"') {
+        if (json[i] === '\\') { result.push(json[i]); i++; }
+        if (i < len) { result.push(json[i]); i++; }
+      }
+      if (i < len) { result.push(json[i]); i++; }
+    } else if (ch === ',') {
+      var j = i + 1;
+      while (j < len && /\s/.test(json[j])) j++;
+      if (j < len && (json[j] === '}' || json[j] === ']')) {
+        i = j;
+      } else {
+        result.push(ch); i++;
+      }
+    } else {
+      result.push(ch); i++;
+    }
+  }
+  return result.join('');
+}
+
+async function startEmotionAnalysis() {
+  const baseUrl = document.getElementById('llmBaseUrl').value.trim();
+  const apiKey = document.getElementById('llmApiKey').value.trim();
+  const model = document.getElementById('llmModel').value.trim();
+  if (!baseUrl || !apiKey || !model) {
+    toast('请先配置 LLM API 信息', 'error'); return;
+  }
+  localStorage.setItem('mimo_llm_url', baseUrl);
+  localStorage.setItem('mimo_llm_key', apiKey);
+  localStorage.setItem('mimo_llm_model', model);
+  const checked = chapters.filter(c => c.checked);
+  if (!checked.length) { toast('请至少勾选要分析的章节', 'error'); return; }
+
+  document.getElementById('emotionProgress').classList.remove('hidden');
+  const queueEl = document.getElementById('emotionQueueList');
+  // 用 Map 保存 idx → statusEl 的映射，避免 ID 查找问题
+  const statusMap = new Map();
+  let queueHtml = '';
+  for (const ch of checked) {
+    const idx = chapters.indexOf(ch);
+    queueHtml += `<div class="queue-item" id="eqi-${idx}">
+      <span class="qi-title">${esc(ch.title)}</span>
+      <span class="queue-status queue-pending" id="eqs-${idx}">等待中</span>
+    </div>`;
+  }
+  queueEl.innerHTML = queueHtml;
+  // 建立映射
+  for (const ch of checked) {
+    const idx = chapters.indexOf(ch);
+    statusMap.set(idx, document.getElementById(`eqs-${idx}`));
+  }
+
+  const btn = document.getElementById('emotionBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 分析中...';
+  currentAbort = new AbortController();
+  const signal = currentAbort.signal;
+
+  let done = 0, fail = 0;
+
+  // 单章分析函数
+  async function analyzeChapter(ch) {
+    const idx = chapters.indexOf(ch);
+    const statusEl = statusMap.get(idx);
+    if (statusEl) { statusEl.className = 'queue-status queue-running'; statusEl.textContent = '分析中...'; }
+
+    try {
+      // 分块分析：按 CHUNK_SIZE 字一块，在段落边界切割，逐块调用 LLM 再合并结果
+      const CHUNK_SIZE = 8000;
+      const fullContent = ch.content;
+      const chunks = [];
+
+      if (fullContent.length <= CHUNK_SIZE) {
+        chunks.push(fullContent);
+      } else {
+        // 按段落（空行）分割，再组合成不超过 CHUNK_SIZE 的块
+        const paragraphs = fullContent.split(/\n\s*\n/);
+        let currentBlock = '';
+        for (const para of paragraphs) {
+          if (currentBlock.length + para.length > CHUNK_SIZE && currentBlock.length > 0) {
+            chunks.push(currentBlock.trim());
+            currentBlock = para;
+          } else {
+            currentBlock += (currentBlock ? '\n\n' : '') + para;
+          }
+        }
+        if (currentBlock.trim()) chunks.push(currentBlock.trim());
+      }
+
+      const totalChunks = chunks.length;
+      let mergedCharMap = {};
+      let mergedScript = [];
+
+      for (let ci = 0; ci < totalChunks; ci++) {
+        if (statusEl) statusEl.textContent = `分析中(${ci + 1}/${totalChunks})...`;
+
+        const resp = await fetch(`${baseUrl}/chat/completions`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+          body: JSON.stringify({
+            model,
+            messages: [{
+              role: 'user',
+              content: SCRIPT_ANALYSIS_PROMPT + `\n章节标题：${ch.title}（第${ci + 1}/${totalChunks}部分）\n\n${chunks[ci]}`
+            }],
+            temperature: 0.3
+          }),
+          signal
+        });
+        if (!resp.ok) {
+          const errBody = await resp.text().catch(() => '');
+          throw new Error(`HTTP ${resp.status}: ${errBody.slice(0, 200)}`);
+        }
+        const data = await resp.json();
+        if (data.error) throw new Error('API 错误: ' + (data.error.message || JSON.stringify(data.error)));
+        let raw = data.choices?.[0]?.message?.content?.trim() || '';
+        if (!raw) throw new Error('模型返回了空内容');
+
+        let parsed;
+        try {
+          parsed = tryParseJson(raw);
+        } catch (parseErr) {
+          throw new Error(`JSON 解析失败(块${ci + 1}): ${parseErr.message}\n原始返回前200字：${raw.slice(0, 200)}`);
+        }
+
+        // 合并 character_map
+        if (parsed.character_map) {
+          Object.assign(mergedCharMap, parsed.character_map);
+        }
+        // 拼接 script
+        if (parsed.script && parsed.script.length) {
+          mergedScript = mergedScript.concat(parsed.script);
+        }
+      }
+
+      ch.characterMap = mergedCharMap;
+      ch.script = mergedScript;
+      const emotions = ch.script.filter(s => s.speaker_emo && s.speaker_emo !== '中性').map(s => s.speaker_emo);
+      ch.mood = emotions.length ? emotions[0] : '中性';
+      ch.ttsPrompt = null;
+
+      mergeChapterCharacters(ch, idx);
+      applyVoiceAssignments(ch);
+
+      // 立即保存本章 API 返回结果到单独文件
+      if (projectDirHandle) {
+        saveChapterResult(idx, { characterMap: mergedCharMap, script: mergedScript, mood: ch.mood }).catch(() => {});
+      }
+
+      const charCount = Object.keys(ch.characterMap).length;
+      const scriptCount = ch.script.length;
+      done++;
+      if (statusEl) { statusEl.className = 'queue-status queue-done'; statusEl.textContent = `${charCount}角色/${scriptCount}行`; }
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        if (statusEl) { statusEl.className = 'queue-status queue-error'; statusEl.textContent = '已取消'; }
+        return;
+      }
+      fail++;
+      const errMsg = e.message || '未知错误';
+      console.error(`[情绪分析] ${ch.title} 失败:`, errMsg);
+      if (statusEl) {
+        statusEl.className = 'queue-status queue-error';
+        statusEl.textContent = '失败';
+        statusEl.title = errMsg;
+        statusEl.style.cursor = 'pointer';
+        statusEl.onclick = () => alert(errMsg);
+      }
+      toast(`${ch.title} 分析失败: ${errMsg.slice(0, 80)}`, 'error');
+    }
+    renderChapterList();
+  }
+
+  // 并发控制：每次最多 3 章同时分析
+  const CONCURRENCY = 3;
+  const queue = checked.slice();
+  const running = [];
+  while (queue.length || running.length) {
+    while (running.length < CONCURRENCY && queue.length) {
+      const ch = queue.shift();
+      const p = analyzeChapter(ch).then(() => { running.splice(running.indexOf(p), 1); });
+      running.push(p);
+    }
+    if (running.length) await Promise.race(running);
+  }
+
+  // 分析完成后，为本次分析涉及的重要角色生成音色设计提示词
+  if (done > 0) {
+    // 收集本次分析章节中的重要角色名，并重置它们的 voiceDesignPrompt
+    const analyzedCharNames = new Set();
+    for (const ch of checked) {
+      if (ch.characterMap) {
+        for (const rawName of Object.keys(ch.characterMap)) {
+          if (rawName !== '旁白') analyzedCharNames.add(normalizeCharName(rawName));
+        }
+      }
+    }
+    // 只重置重要角色的音色提示词
+    for (const name of analyzedCharNames) {
+      if (globalCharacters[name] && globalCharacters[name].role_tag === '重要角色') {
+        globalCharacters[name].voiceDesignPrompt = null;
+      }
+    }
+    const needDesign = Object.values(globalCharacters).filter(c => c.role_tag === '重要角色' && !c.voiceDesignPrompt);
+    if (needDesign.length) {
+      toast('正在为 ' + needDesign.length + ' 个重要角色设计音色...', 'info');
+      await generateVoiceDesignPrompts(needDesign, baseUrl, apiKey, model, function(d, total) {
+        btn.innerHTML = '<span class="spinner"></span> 设计音色 ' + d + '/' + total;
+      });
+      const designed = needDesign.filter(c => globalCharacters[c.name]?.voiceDesignPrompt).length;
+      console.log('[音色设计] 完成: ' + designed + '/' + needDesign.length);
+    }
+    // 分配音色到脚本（重要角色用VoiceDesign，路人用预设，瞬间完成）
+    for (const ch of chapters) applyVoiceAssignments(ch);
+    // 保存（不阻塞 UI）
+    saveProject(true).catch(e => console.error('[保存失败]', e));
+  }
+
+  if (currentChapter >= 0) showChapter(currentChapter);
+  updateCharList();
+  btn.disabled = false; btn.textContent = '情绪分析';
+  currentAbort = null;
+  const charCount = Object.keys(globalCharacters).length;
+  const designedCount = Object.values(globalCharacters).filter(c => c.voiceDesignPrompt).length;
+  toast(`分析完成: ${done}章成功, ${charCount}个角色(${designedCount}个有音色)`, fail === 0 ? 'success' : 'error');
+}
+
+// ========== Script-Based Audio Synthesis ==========
+// 将单条脚本转为 MiMo 风格指令
+function buildStyleInstruction(item) {
+  const parts = [];
+  const emoStyle = EMO_STYLE_MAP[item.speaker_emo];
+  if (emoStyle) parts.push(emoStyle);
+  // emo_vector 提示（如果有非零值）
+  if (item.emo_vector && item.emo_vector.some(v => v > 0)) {
+    const labels = ['喜', '怒', '哀', '惧', '厌恶', '低落', '惊喜', '平静'];
+    const active = item.emo_vector.map((v, i) => v > 0.05 ? `${labels[i]}${v.toFixed(1)}` : null).filter(Boolean);
+    if (active.length) parts.push('情感微调：' + active.join('、'));
+  }
+  return parts.join('，') || '';
+}
+
+// 根据脚本逐行合成，拼接 PCM 为完整音频
+function getSynthCacheKey(item) {
+  var va = item._voiceAssignment;
+  var vaKey = va ? (va.type + ':' + (va.prompt || va.voice || '')) : 'none';
+  return [item.speaker, item.content, item.speaker_emo, JSON.stringify(item.emo_vector || []), vaKey].join('|');
+}
+
+async function synthesizeScript(ch, voice, statusCallback, signal) {
+  const script = ch.script;
+  if (!script || !script.length) throw new Error('该章节没有脚本数据，请先进行情绪分析');
+
+  const pcmChunks = [];
+  const sampleRate = 24000;
+  let processed = 0;
+  const failedLines = [];
+
+  for (let lineIdx = 0; lineIdx < script.length; lineIdx++) {
+    const item = script[lineIdx];
+    const text = (item.content || '').trim();
+    if (!text) { processed++; continue; }
+
+    try {
+      // 检查缓存
+      const cacheKey = getSynthCacheKey(item);
+      const cached = synthCache.get(cacheKey);
+      if (cached) {
+        pcmChunks.push(cached);
+      } else {
+      let blob;
+      const va = item._voiceAssignment;
+
+      if (va && va.type === 'voicedesign') {
+        const style = buildStyleInstruction(item);
+        const vdMessages = [];
+        if (style) {
+          vdMessages.push({ role: 'user', content: `${va.prompt}. Style for this line: ${style}` });
+        } else {
+          vdMessages.push({ role: 'user', content: va.prompt });
+        }
+        vdMessages.push({ role: 'assistant', content: text });
+        blob = await callTTSApi('mimo-v2.5-tts-voicedesign', vdMessages, { format: 'wav' }, signal);
+      } else {
+        const style = buildStyleInstruction(item);
+        const presetVoice = (va && va.type === 'preset') ? va.voice : voice;
+        const messages = [];
+        if (style) messages.push({ role: 'user', content: style });
+        messages.push({ role: 'assistant', content: text });
+        blob = await callTTSApi('mimo-v2.5-tts', messages, { format: 'wav', voice: presetVoice }, signal);
+      }
+
+      const { pcm } = await wavToPCM(blob);
+      synthCache.set(cacheKey, pcm);
+      pcmChunks.push(pcm);
+      } // end else (not cached)
+    } catch (e) {
+      if (e.name === 'AbortError') throw e; // 让调用方处理取消
+      console.error('Script line synthesis failed:', lineIdx, item.speaker, text.slice(0, 30), e);
+      failedLines.push({ idx: lineIdx + 1, speaker: item.speaker, text: text.slice(0, 30), error: e.message });
+    }
+
+    // 添加间隔静音
+    const delay = Math.max(100, Math.min(item.delay || 350, 1200));
+    pcmChunks.push(makeSilence(delay, sampleRate));
+
+    processed++;
+    if (statusCallback) statusCallback(processed, script.length);
+  }
+
+  if (!pcmChunks.length) throw new Error('所有脚本行合成失败');
+
+  if (failedLines.length) {
+    var summary = failedLines.map(function(f) { return '#' + f.idx + ' ' + f.speaker + ': ' + f.text; }).join('\n');
+    toast('有 ' + failedLines.length + ' 行合成失败（已跳过）', 'error');
+    console.warn('[合成失败明细]\n' + summary);
+  }
+
+  const merged = concatPCM(pcmChunks);
+  return { blob: pcmToWav(merged, sampleRate), failedLines };
+}
+
+// 无脚本时的降级合成（整章一次性）
+async function synthesizeFallback(ch, voice) {
+  const messages = [];
+  if (ch.ttsPrompt) messages.push({ role: 'user', content: ch.ttsPrompt });
+  messages.push({ role: 'assistant', content: ch.content });
+  return callTTSApi('mimo-v2.5-tts', messages, { format: 'wav', voice });
+}
+
+async function startBatchGenerate() {
+  const checkedChapters = chapters.filter(c => c.checked);
+  if (!checkedChapters.length) { toast('请至少选择一章', 'error'); return; }
+  const voice = document.getElementById('novelVoice').value;
+
+  // 确保所有角色都有音色设计
+  await ensureAllVoicesDesigned();
+
+  document.getElementById('batchProgress').classList.remove('hidden');
+  const queueEl = document.getElementById('queueList');
+  novelAudioBlobs = {};
+
+  queueEl.innerHTML = checkedChapters.map(ch => {
+    const idx = chapters.indexOf(ch);
+    return `<div class="queue-item" id="qi-${idx}">
+      <span class="qi-title">${esc(ch.title)}</span>
+      <span class="queue-status queue-pending" id="qs-${idx}">等待中</span>
+    </div>`;
+  }).join('');
+
+  const btn = document.getElementById('batchBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> 生成中...';
+  currentAbort = new AbortController();
+  const signal = currentAbort.signal;
+
+  for (const ch of checkedChapters) {
+    if (signal.aborted) break;
+    const idx = chapters.indexOf(ch);
+    const statusEl = document.getElementById(`qs-${idx}`);
+    statusEl.className = 'queue-status queue-running';
+    statusEl.textContent = '生成中...';
+    try {
+      let blob;
+      let failedLines = [];
+      if (ch.script && ch.script.length) {
+        var result = await synthesizeScript(ch, voice, (done, total) => {
+          statusEl.textContent = `合成中 ${done}/${total}`;
+        }, signal);
+        blob = result.blob;
+        failedLines = result.failedLines;
+      } else {
+        statusEl.textContent = '合成中(整章)...';
+        blob = await synthesizeFallback(ch, voice);
+      }
+      novelAudioBlobs[idx] = blob;
+      // 自动保存到本地目录
+      if (outputDirHandle || projectDirHandle) {
+        statusEl.textContent = '保存中...';
+        if (outputDirHandle) await saveAudioToFile(blob, ch.title);
+        if (projectDirHandle) await saveAudioToProjectDir(blob, ch.title);
+      }
+      statusEl.className = 'queue-status queue-done';
+      statusEl.textContent = failedLines.length ? `完成(${failedLines.length}行失败)` : '完成';
+      renderChapterList();
+    } catch (e) {
+      if (e.name === 'AbortError') {
+        statusEl.className = 'queue-status queue-error';
+        statusEl.textContent = '已取消';
+        break;
+      }
+      statusEl.className = 'queue-status queue-error';
+      statusEl.textContent = '失败';
+      statusEl.title = e.message;
+      statusEl.style.cursor = 'pointer';
+      statusEl.onclick = () => alert(e.message);
+    }
+  }
+
+  btn.disabled = false; btn.textContent = '全部生成';
+  const wasAborted = signal.aborted;
+  currentAbort = null;
+  await saveSynthCache();
+  if (!wasAborted) {
+    var saveInfo = [];
+    if (outputDirHandle) saveInfo.push('音频目录: ' + outputDirHandle.name);
+    if (projectDirHandle) saveInfo.push('项目目录: ' + projectDirHandle.name);
+    toast(saveInfo.length ? '批量生成完成，已保存到 ' + saveInfo.join(' + ') : '批量生成完成，请点击「项目目录」或「音频目录」启用自动保存', 'success');
+  }
+
+  const firstIdx = Object.keys(novelAudioBlobs).map(Number)[0];
+  if (firstIdx !== undefined) loadNovelChapterAudio(firstIdx);
+}
+
+async function generateChapterAudio(btnEl) {
+  if (currentChapter < 0) return;
+  const ch = chapters[currentChapter];
+  const voice = document.getElementById('novelVoice').value;
+  const btn = btnEl || document.querySelector('[onclick*="generateChapterAudio"]');
+  btn.disabled = true; btn.textContent = '生成中...';
+
+  // 确保所有角色都有音色设计
+  await ensureAllVoicesDesigned();
+  try {
+    let blob;
+    let failedLines = [];
+    if (ch.script && ch.script.length) {
+      var result = await synthesizeScript(ch, voice, (done, total) => {
+        btn.textContent = `合成中 ${done}/${total}`;
+      }, null);
+      blob = result.blob;
+      failedLines = result.failedLines;
+    } else {
+      btn.textContent = '合成中(整章)...';
+      blob = await synthesizeFallback(ch, voice);
+    }
+    novelAudioBlobs[currentChapter] = blob;
+    // 自动保存到本地目录
+    if (outputDirHandle) await saveAudioToFile(blob, ch.title);
+    if (projectDirHandle) await saveAudioToProjectDir(blob, ch.title);
+    loadNovelChapterAudio(currentChapter);
+    renderChapterList();
+    await saveSynthCache();
+    toast(failedLines.length ? `本章音频生成完成(${failedLines.length}行失败)` : '本章音频生成成功' + ((outputDirHandle || projectDirHandle) ? '，已自动保存到本地' : ''), failedLines.length ? 'error' : 'success');
+  } catch (e) {
+    toast('生成失败: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = '生成本章音频';
+  }
+}
+
+function loadNovelChapterAudio(idx) {
+  const blob = novelAudioBlobs[idx];
+  if (!blob) return;
+  currentChapter = idx;
+  if (lastAudioUrl) URL.revokeObjectURL(lastAudioUrl);
+  lastAudioUrl = URL.createObjectURL(blob);
+  lastAudioBlob = blob;
+  novelAudio.src = lastAudioUrl;
+  document.getElementById('novelPlayer').style.display = 'block';
+  document.getElementById('playerChapterTitle').textContent = chapters[idx]?.title || '-';
+  document.getElementById('novelPlayBtn').textContent = '▶';
+  renderChapterList();
+  showChapter(idx);
+}
+
+function toggleNovelPlay() {
+  if (novelAudio.paused) {
+    novelAudio.play();
+    document.getElementById('novelPlayBtn').textContent = '⏸';
+  } else {
+    novelAudio.pause();
+    document.getElementById('novelPlayBtn').textContent = '▶';
+  }
+}
+
+function playPrevChapter() {
+  for (let i = currentChapter - 1; i >= 0; i--) {
+    if (novelAudioBlobs[i]) { loadNovelChapterAudio(i); novelAudio.play(); document.getElementById('novelPlayBtn').textContent = '⏸'; return; }
+  }
+}
+function playNextChapter() {
+  for (let i = currentChapter + 1; i < chapters.length; i++) {
+    if (novelAudioBlobs[i]) { loadNovelChapterAudio(i); novelAudio.play(); document.getElementById('novelPlayBtn').textContent = '⏸'; return; }
+  }
+}
+function seekNovelAudio(val) {
+  if (novelAudio.duration) novelAudio.currentTime = (val / 100) * novelAudio.duration;
+}
+function setNovelSpeed(v) { novelAudio.playbackRate = parseFloat(v); }
+
+novelAudio.addEventListener('timeupdate', () => {
+  if (novelAudio.duration) {
+    document.getElementById('novelSeek').value = (novelAudio.currentTime / novelAudio.duration) * 100;
+    document.getElementById('novelTime').textContent = `${fmtTime(novelAudio.currentTime)} / ${fmtTime(novelAudio.duration)}`;
+  }
+});
+novelAudio.addEventListener('ended', () => {
+  playNextChapter();
+});
+
+function fmtTime(s) {
+  const m = Math.floor(s / 60);
+  const sec = Math.floor(s % 60);
+  return `${m}:${sec.toString().padStart(2, '0')}`;
+}
+
+function downloadChapterAudio() {
+  if (!lastAudioBlob) return;
+  const a = document.createElement('a');
+  a.href = lastAudioUrl;
+  a.download = `${chapters[currentChapter]?.title || 'chapter'}.wav`;
+  a.click();
+}
+
+// 选择输出目录（File System Access API）
+async function selectOutputDir() {
+  if (!('showDirectoryPicker' in window)) {
+    toast('当前浏览器不支持自动保存，请使用 Chrome/Edge', 'error'); return;
+  }
+  try {
+    outputDirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+    toast('输出目录已选择: ' + outputDirHandle.name, 'success');
+    updateOutputDirLabel();
+  } catch (e) {
+    if (e.name !== 'AbortError') toast('选择目录失败: ' + e.message, 'error');
+  }
+}
+
+function updateOutputDirLabel() {
+  var el = document.getElementById('outputDirLabel');
+  if (el) el.textContent = outputDirHandle ? outputDirHandle.name : '未选择';
+}
+
+function updateProjectDirLabel() {
+  var el = document.getElementById('projectDirLabel');
+  if (el) el.textContent = projectDirHandle ? projectDirHandle.name : '未选择';
+}
+
+// 为当前项目关联本地文件夹
+async function linkProjectDir() {
+  var handle = await selectProjectDir();
+  if (!handle) return;
+  projectDirHandle = handle;
+  await ensureProjectDirs(handle);
+  updateProjectDirLabel();
+  // 立即保存一次项目数据到文件夹
+  await saveProject(true);
+  toast('项目已关联文件夹: ' + handle.name, 'success');
+}
+
+// 将音频 blob 保存到输出目录
+async function saveAudioToFile(blob, filename) {
+  if (!outputDirHandle) return false;
+  try {
+    // 清理文件名中的非法字符
+    var safeName = filename.replace(/[\\/:*?"<>|]/g, '_');
+    if (!safeName.endsWith('.wav')) safeName += '.wav';
+    var fileHandle = await outputDirHandle.getFileHandle(safeName, { create: true });
+    var writable = await fileHandle.createWritable();
+    await writable.write(blob);
+    await writable.close();
+    console.log('[自动保存]', safeName, (blob.size / 1024).toFixed(0) + 'KB');
+    return true;
+  } catch (e) {
+    console.error('[自动保存失败]', filename, e);
+    return false;
+  }
+}
+
+async function exportAllAudio() {
+  const keys = Object.keys(novelAudioBlobs);
+  if (!keys.length) { toast('没有可导出的音频', 'error'); return; }
+  toast('正在打包...', 'info');
+  try {
+    // Use JSZip if available, otherwise download individually
+    if (typeof JSZip === 'undefined') {
+      // Load JSZip dynamically
+      await loadScript('https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js');
+    }
+    const zip = new JSZip();
+    for (const idx of keys) {
+      const ch = chapters[idx];
+      const blob = novelAudioBlobs[idx];
+      const name = `${(ch?.title || `chapter_${idx}`).replace(/[\\/:*?"<>|]/g, '_')}.wav`;
+      zip.file(name, blob);
+    }
+    const content = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content);
+    a.download = `${(currentProjectName || 'novel').replace(/[\\/:*?"<>|]/g, '_')}_${Date.now()}.zip`;
+    a.click();
+    toast('导出成功', 'success');
+  } catch (e) {
+    toast('导出失败: ' + e.message, 'error');
+  }
+}
+
+function loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
+// ========== History ==========
+function toggleHistory() {
+  document.getElementById('historySidebar').classList.toggle('open');
+}
+
+function addHistory(type, text, voice) {
+  history.unshift({ type, text, voice, time: Date.now() });
+  if (history.length > 50) history = history.slice(0, 50);
+  localStorage.setItem('mimo_history', JSON.stringify(history));
+  renderHistory();
+}
+
+function renderHistory() {
+  const el = document.getElementById('historyList');
+  if (!history.length) { el.innerHTML = '<p style="padding:16px;color:var(--text2);font-size:13px;">暂无历史记录</p>'; return; }
+  el.innerHTML = history.map((h, i) => `
+    <div class="history-item">
+      <div class="hi-text">[${esc(h.type)}] ${esc(h.text)}</div>
+      <div class="hi-meta">${esc(h.voice)} · ${new Date(h.time).toLocaleString()}</div>
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  history = [];
+  localStorage.setItem('mimo_history', '[]');
+  renderHistory();
+  toast('历史已清空', 'info');
+}
+
+// ========== Utils ==========
+function esc(s) {
+  if (!s) return '';
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>
