@@ -79,33 +79,47 @@ mimo-tts-studio/
 └──────────────────────────────────────────────┘
 ```
 
-## 快速开始
+## 安装与使用
 
-### 前端（直连模式，开箱即用）
+### 方式一：直接打开（无需安装）
+
+下载仓库后，用浏览器直接打开 `frontend/index.html` 即可使用（Chrome/Edge 120+）。
+
+> 注意：Chrome 从本地文件打开时部分 API 受限，推荐方式二。
+
+### 方式二：命令行启动（推荐）
 
 ```bash
-cd frontend
+# 1. 克隆或下载仓库
+git clone https://github.com/lytssaa/audiobook-tts-studio.git
+cd audiobook-tts-studio/frontend
+
+# 2. 启动本地服务器（任选其一）
 python -m http.server 8081
-# 打开 http://localhost:8081
+# 或
+npx serve .
+# 或
+node -e "require('http').createServer((req,res)=>require('fs').createReadStream('.'+req.url).pipe(res)).listen(8081)"
+
+# 3. 浏览器打开 http://localhost:8081
 ```
 
-直连模式下，API Key 在浏览器本地存储，数据通过 File System Access API 保存到本地文件夹。
+### 方式三：后端代理模式（可选）
 
-### 后端（可选代理模式）
+如果需要后端统一管理 API Key 和数据：
 
 ```bash
 cd backend
 go mod tidy
-go run main.go
-# 默认监听 :8080
+go run main.go     # 默认监听 :8080
 
-# 环境变量
+# 环境变量配置
 PORT=8080 STORAGE_DIR=./data DEBUG=true go run main.go
 ```
 
-点击前端顶部「直连」按钮可切换为代理模式，后端统一管理 API Key。
+然后在前端页面顶部点击「直连」按钮切换为「代理」模式。
 
-### 构建
+### 构建（开发者）
 
 ```bash
 cd frontend
