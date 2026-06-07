@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MiMo TTS Studio</title>
+<link rel="stylesheet" href="public/theme-new.css?v=11">
+<link rel="stylesheet" href="public/novel.css?v=5">
+</head>
+<body>
+
+<!-- ==================== App Shell ==================== -->
+<div class="app-shell">
+
+<!-- ========== Sidebar ========== -->
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="logo">M</div>
+    <span class="brand-text">MiMo TTS</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-section-title">功能</div>
+    <button class="nav-item active" data-tab="0" onclick="switchTab(0)">
+      <span class="nav-icon">🎙</span> TTS 合成
+    </button>
+    <button class="nav-item" data-tab="1" onclick="switchTab(1)">
+      <span class="nav-icon">🎨</span> 音色设计
+    </button>
+    <button class="nav-item" data-tab="2" onclick="switchTab(2)">
+      <span class="nav-icon">🎭</span> 音色克隆
+    </button>
+    <button class="nav-item" data-tab="3" onclick="switchTab(3)">
+      <span class="nav-icon">📖</span> 小说朗读
+    </button>
+
+    <div class="nav-divider"></div>
+    <div class="nav-section-title">设置</div>
+    <button class="nav-item" onclick="toggleHistory()">
+      <span class="nav-icon">🕒</span> 历史记录
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <input type="password" class="api-input" id="apiKey" placeholder="MiMo API Key" onchange="onApiChange()">
+    <div style="display:flex;gap:4px;">
+      <button class="btn btn-primary btn-sm" onclick="testConnection()" style="flex:1;font-size:11px;">测试连接</button>
+      <button class="btn-icon sm" onclick="toggleProxy()" id="proxyToggle" title="直连/代理">🔗</button>
+      <button class="btn-icon sm" onclick="toggleTheme()" id="themeToggle" title="主题">🌓</button>
+    </div>
+  </div>
+  <button class="sidebar-collapse-btn" onclick="toggleSidebar()" title="收缩/展开">◀</button>
+</aside>
+
+<!-- ========== Main Content ========== -->
+<main class="main-content">
+
+<!-- Tab 0: TTS 合成 -->
+<div id="page0">
+  <div class="page-header">
+    <h2>TTS 基础合成</h2>
+    <div class="header-actions">
+      <label class="toggle-wrap" style="margin-right:12px;">
+        <span>API 直连</span>
+        <div class="toggle on" id="proxyToggle2" onclick="toggleProxy()"></div>
+      </label>
+      <button class="btn btn-secondary btn-sm" onclick="toggleHistory()">历史</button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <!-- API Config -->
+    <div class="card" style="cursor:pointer;">
+      <div class="card-header" onclick="this.parentElement.querySelector('#apiConfigPanel').classList.toggle('hidden')">
+        <div>
+          <div class="card-title">API 配置</div>
+          <div class="card-subtitle">MiMo TTS 模型与接口设置</div>
+        </div>
+        <span style="font-size:11px;color:var(--text-muted);">▼ 展开</span>
+      </div>
+      <div id="apiConfigPanel" class="hidden">
+        <div class="form-row">
+          <div class="form-group" style="flex:2;">
+            <label class="form-label">API Base URL</label>
+            <input type="text" class="form-input" id="apiBaseUrl" value="https://api.xiaomimimo.com/v1" onchange="onApiChange()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">TTS 模型</label>
+            <input type="text" class="form-input" id="modelTTS" value="mimo-v2.5-tts" onchange="onApiChange()">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">VoiceDesign 模型</label>
+            <input type="text" class="form-input" id="modelVoiceDesign" value="mimo-v2.5-tts-voicedesign" onchange="onApiChange()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">VoiceClone 模型</label>
+            <input type="text" class="form-input" id="modelVoiceClone" value="mimo-v2.5-tts-voiceclone" onchange="onApiChange()">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TTS Main -->
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">文本合成</div>
+          <div class="card-subtitle">输入文本，选择语音角色和风格，一键生成</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">合成文本</label>
+        <textarea class="form-textarea" id="ttsText" rows="4" placeholder="输入要合成的文本...&#10;支持音频标签：(温柔)开头控制风格，[叹气] [笑] [停顿] 插入句中"
+          oninput="updateCharCount(this,'ttsCharCount')"></textarea>
+        <div class="char-count"><span id="ttsCharCount">0</span> 字</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">风格标签</label>
+        <div class="tag-container">
+          <span class="tag" onclick="insertTTSStyleTag('温柔')">温柔</span>
+          <span class="tag" onclick="insertTTSStyleTag('开心')">开心</span>
+          <span class="tag" onclick="insertTTSStyleTag('悲伤')">悲伤</span>
+          <span class="tag" onclick="insertTTSStyleTag('愤怒')">愤怒</span>
+          <span class="tag" onclick="insertTTSStyleTag('慵懒')">慵懒</span>
+          <span class="tag" onclick="insertTTSStyleTag('磁性')">磁性</span>
+          <span class="tag" onclick="insertTTSStyleTag('沙哑')">沙哑</span>
+          <span class="tag" onclick="insertTTSStyleTag('东北话')">东北话</span>
+          <span class="tag" onclick="insertTTSStyleTag('四川话')">四川话</span>
+          <span class="tag" onclick="insertTTSStyleTag('粤语')">粤语</span>
+          <span class="tag accent" onclick="insertTTSStyleTag('唱歌')">唱歌</span>
+        </div>
+      </div>
+
+      <details style="margin-bottom:16px;">
+        <summary style="font-size:12px;color:var(--accent);cursor:pointer;font-weight:500;">音频标签参考</summary>
+        <div style="font-size:11px;color:var(--text-muted);padding:12px;background:var(--bg-input);border-radius:8px;margin-top:8px;line-height:2;">
+          <b>节奏：</b>[停顿] [长停顿] [急促] [拖音] [语速加快] [语速放缓]<br>
+          <b>情绪：</b>[轻声] [低语] [叹气] [吸气] [哽咽] [强调] [笑] [爽朗大笑]<br>
+          <b>其他：</b>[欲言又止] [碎碎念] [沉默片刻]
+        </div>
+      </details>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">语音角色</label>
+          <select class="form-select" id="ttsVoice">
+            <option value="mimo_default">MiMo-默认</option>
+            <option value="冰糖">冰糖 (女/中文)</option>
+            <option value="茉莉">茉莉 (女/中文)</option>
+            <option value="苏打">苏打 (男/中文)</option>
+          <option value="白桦">白桦 (男/中文)</option>
+        </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">输出格式</label>
+          <select class="form-select" id="ttsFormat">
+            <option value="wav">WAV</option>
+            <option value="mp3">MP3</option>
+            <option value="pcm16">PCM16</option>
+            <option value="opus">Opus</option>
+            <option value="aac">AAC</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">风格指令（可选）</label>
+        <input type="text" class="form-input" id="ttsStyle" placeholder="如：用温柔的语气，语速稍慢">
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary" onclick="generateTTS()" id="ttsBtn">
+          <span>⚡</span> 生成语音
+        </button>
+        <button class="btn btn-secondary hidden" id="ttsDownload" onclick="downloadLastAudio()">
+          <span>⬇</span> 下载
+        </button>
+      </div>
+      <div id="ttsPlayer" class="audio-player"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 1: VoiceDesign -->
+<div id="page1" class="hidden">
+  <div class="page-header">
+    <h2>VoiceDesign 音色设计</h2>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" onclick="generateVDDescription()" id="vdAiBtn">✨ AI 生成描述</button>
+    </div>
+  </div>
+
+  <div class="page-body">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">音色设计</div>
+          <div class="card-subtitle">用自然语言描述你想要的音色，AI 辅助生成更专业的描述</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">音色描述</label>
+        <textarea class="form-textarea" id="vdDesc" rows="3" placeholder="描述你想要的音色，如：温柔女声，适合讲故事，语速适中"
+          oninput="updateCharCount(this,'vdCharCount')"></textarea>
+        <div class="char-count"><span id="vdCharCount">0</span> 字</div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">快捷标签</label>
+        <div class="tag-container">
+          <span class="tag" onclick="appendVDTag('温柔女声')">温柔女声</span>
+          <span class="tag" onclick="appendVDTag('沉稳男声')">沉稳男声</span>
+          <span class="tag" onclick="appendVDTag('温柔')">温柔</span>
+          <span class="tag" onclick="appendVDTag('沉稳')">沉稳</span>
+          <span class="tag" onclick="appendVDTag('稚嫩童声')">稚嫩童声</span>
+          <span class="tag" onclick="appendVDTag('磁性')">磁性</span>
+          <span class="tag" onclick="appendVDTag('活泼')">活泼</span>
+          <span class="tag" onclick="appendVDTag('沙哑')">沙哑</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">参考文本</label>
+        <textarea class="form-textarea" id="vdText" rows="2" placeholder="输入要朗读的文本">今天天气真好，阳光明媚，微风拂面，让人心情愉悦。</textarea>
+      </div>
+
+      <div class="flex-between mb-4">
+        <label class="toggle-wrap">
+          <div class="toggle" id="vdOptimizeToggle" onclick="this.classList.toggle('on');document.getElementById('vdOptimizeText').checked=this.classList.contains('on')"></div>
+          <span>智能优化文本</span>
+          <input type="checkbox" id="vdOptimizeText" class="hidden">
+        </label>
+        <button class="btn btn-secondary btn-sm" onclick="generateVDText()" id="vdTextAiBtn">✨ AI 生成文本</button>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">输出格式</label>
+          <select class="form-select" id="vdFormat">
+            <option value="wav">WAV</option>
+            <option value="mp3">MP3</option>
+            <option value="pcm16">PCM16</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="btn btn-primary" onclick="generateVD()" id="vdBtn">🎧 生成预览</button>
+        <button class="btn btn-secondary hidden" id="vdDownload" onclick="downloadLastAudio()">⬇ 下载</button>
+        <button class="btn btn-secondary" onclick="saveVDVoice()">💾 保存到列表</button>
+      </div>
+      <div id="vdPlayer" class="audio-player"></div>
+    </div>
+
+    <div class="card" id="savedVoicesCard">
+      <div class="card-header">
+        <div class="card-title">已保存音色</div>
+      </div>
+      <div id="savedVoices"><p style="color:var(--text-muted);font-size:13px;padding:8px 0;">暂无保存的音色</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 2: VoiceClone -->
+<div id="page2" class="hidden">
+  <div class="page-header">
+    <h2>VoiceClone 音色克隆</h2>
+  </div>
+
+  <div class="page-body">
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <div class="card-title">音色克隆</div>
+          <div class="card-subtitle">上传音频样本，克隆音色后合成新语音</div>
+        </div>
+      </div>
+
+      <div class="drop-zone" id="cloneDropZone" onclick="document.getElementById('cloneFile').click()"
+        ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')" ondrop="handleCloneDrop(event)">
+        <div class="dz-icon">🎧</div>
+        <div class="dz-text">拖拽音频文件到此处，或点击上传</div>
+        <div class="dz-hint">MP3 / WAV / FLAC · Base64 后不超过 10MB</div>
+        <input type="file" id="cloneFile" accept="audio/*" style="display:none" onchange="handleCloneFile(this)">
+      </div>
+
+      <div id="cloneFileInfo" class="hidden mt-4">
+        <div class="flex-between">
+          <span style="font-size:13px;font-weight:500;" id="cloneFileName"></span>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <span style="font-size:12px;color:var(--text-muted);" id="cloneFileSize"></span>
+            <button class="btn-icon sm" onclick="clearCloneFile()">✕</button>
+          </div>
+        </div>
+        <div id="clonePreview" class="audio-player"></div>
+      </div>
+
+      <div class="form-group mt-4">
+        <label class="form-label">合成文本</label>
+        <textarea class="form-textarea" id="cloneText" rows="3" placeholder="输入要合成的文本&#10;支持音频标签"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">风格指令</label>
+        <textarea class="form-textarea" id="cloneStyle" rows="2" placeholder="如：用温柔的语气，语速稍慢&#10;导演模式：角色+场景+指导 三维度描述"></textarea>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">输出格式</label>
+          <select class="form-select" id="cloneFormat">
+            <option value="wav">WAV</option>
+            <option value="mp3">MP3</option>
+            <option value="pcm16">PCM16</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-primary" onclick="generateClone()" id="cloneBtn">🎭 克隆生成</button>
+        <button class="btn btn-secondary hidden" id="cloneDownload" onclick="downloadLastAudio()">⬇ 下载</button>
+      </div>
+      <div id="clonePlayer" class="audio-player"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab 3: 小说朗读 -->
+<div id="page3" class="hidden" style="height:100%;">
+  <!-- Import Card (shown when no project open) -->
+  <div id="novelImportCard" style="height:100%;display:flex;align-items:center;justify-content:center;">
+    <div style="text-align:center;max-width:480px;">
+      <div style="font-size:48px;margin-bottom:16px;opacity:0.5;">📖</div>
+      <h2 style="font-size:22px;font-weight:700;margin-bottom:8px;">小说有声书朗读</h2>
+      <p style="color:var(--text-muted);margin-bottom:24px;line-height:1.6;">导入 TXT 小说，AI 自动分析角色情绪、设计音色、生成完整有声书</p>
+      <div style="display:flex;gap:12px;justify-content:center;margin-bottom:24px;">
+        <button class="btn btn-primary" onclick="createNewProject()" style="padding:12px 28px;font-size:14px;">📂 新建项目</button>
+      </div>
+      <div class="drop-zone" ondragover="event.preventDefault();this.classList.add('dragover')"
+        ondragleave="this.classList.remove('dragover')" ondrop="handleNovelDrop(event)">
+        <div class="dz-icon">📄</div>
+        <div class="dz-text">拖拽 TXT 文件到此处</div>
+        <div class="dz-hint">自动检测编码，自动拆分章节</div>
+      </div>
+      <div style="margin-top:32px;text-align:left;">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px;">历史项目</h3>
+        <div id="projectList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Novel Workspace (shown when project is open) -->
+  <div id="novelWorkspace" class="hidden" style="height:100%;">
+    <div class="novel-workspace">
+      <!-- Left: Chapter List -->
+      <div class="nv-left">
+        <div class="nv-left-header">
+          <div class="breadcrumb"><a href="#" onclick="backToProjects();return false;">← 项目列表</a></div>
+          <div class="nv-title" id="novelTitle">-</div>
+          <div class="nv-stats" id="novelStats"></div>
+        </div>
+        <div class="nv-search-box">
+          <input type="text" id="chapterSearch" placeholder="搜索章节..." oninput="filterChapters(this.value)">
+        </div>
+        <div class="chapter-list" id="chapterList"></div>
+        <div class="nv-left-actions">
+          <button class="btn btn-xs btn-secondary" onclick="selectAllChapters(true)">全选</button>
+          <button class="btn btn-xs btn-secondary" onclick="selectAllChapters(false)">取消</button>
+          <button class="btn btn-xs btn-secondary" onclick="selectUnanalyzedChapters()">未分析</button>
+          <button class="btn btn-xs btn-primary" onclick="startEmotionAnalysis()" id="emotionBtn">情绪分析</button>
+        </div>
+      </div>
+
+      <!-- Center: Script Editor -->
+      <div class="nv-center">
+        <div class="nv-toolbar">
+          <div class="tb-group">
+            <button class="btn btn-xs btn-secondary" onclick="document.getElementById('novelFile2').click()">导入TXT</button>
+            <input type="file" id="novelFile2" accept=".txt" style="display:none" onchange="importTxtToProject(this)">
+            <button class="btn btn-xs btn-primary" onclick="saveProject()">保存</button>
+            <button class="btn btn-xs btn-primary" onclick="generateChapterAudio(this)">生成本章</button>
+            <button class="btn btn-xs btn-secondary" onclick="startBatchGenerate()" id="batchBtn">批量生成</button>
+          </div>
+          <div class="tb-sep"></div>
+          <div class="tb-group">
+            <button class="btn btn-xs btn-secondary" onclick="exportAllAudio()">导出ZIP</button>
+            <button class="btn btn-xs btn-secondary" onclick="batchSetDelay()">批量停顿</button>
+            <button class="btn btn-xs btn-secondary" onclick="selectOutputDir()">音频目录</button>
+            <span id="outputDirLabel" class="tb-label">未选择</span>
+            <button class="btn btn-xs btn-secondary" onclick="linkProjectDir()">项目目录</button>
+            <span id="projectDirLabel" class="tb-label">未选择</span>
+          </div>
+          <div class="tb-sep"></div>
+          <div class="tb-group" style="margin-left:auto;">
+            <label class="tb-label">筛选</label>
+            <select id="speakerFilter" style="font-size:11px;padding:3px 6px;max-width:110px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);" onchange="filterBySpeaker(this.value)">
+              <option value="">全部</option>
+            </select>
+            <select id="novelVoice" style="font-size:11px;padding:3px 6px;background:var(--bg-input);border:1px solid var(--border);border-radius:4px;color:var(--text-primary);">
+              <option value="mimo_default">MiMo-默认</option>
+              <option value="冰糖">冰糖</option>
+              <option value="茉莉">茉莉</option>
+              <option value="苏打">苏打</option>
+              <option value="白桦">白桦</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="nv-script-area" id="scriptArea">
+          <div class="empty-state">
+            <div class="es-icon">📝</div>
+            <div class="es-text">导入小说或选择章节后点击「情绪分析」</div>
+            <div class="es-hint">AI 将自动提取角色、分析情绪、生成有声书脚本</div>
+          </div>
+        </div>
+
+        <div id="emotionProgress" class="nv-queue-panel hidden">
+          <div class="qp-header">
+            <h4>情绪分析队列</h4>
+            <button class="btn btn-xs btn-danger" onclick="abortCurrentTask()">取消</button>
+          </div>
+          <div id="emotionQueueList"></div>
+        </div>
+
+        <div id="batchProgress" class="nv-queue-panel hidden">
+          <div class="qp-header">
+            <h4>生成队列</h4>
+            <button class="btn btn-xs btn-danger" onclick="abortCurrentTask()">取消</button>
+          </div>
+          <div id="queueList"></div>
+        </div>
+
+        <!-- Player Bar -->
+        <div class="player-bar" id="novelPlayer" style="display:none;">
+          <div class="pb-controls">
+            <button class="btn-icon sm" onclick="playPrevChapter()">⏮</button>
+            <button class="btn btn-primary btn-sm" onclick="toggleNovelPlay()" id="novelPlayBtn">▶</button>
+            <button class="btn-icon sm" onclick="playNextChapter()">⏭</button>
+            <span class="pb-chapter" id="playerChapterTitle">-</span>
+            <span class="pb-time" id="novelTime">0:00 / 0:00</span>
+            <button class="btn btn-xs btn-secondary" onclick="downloadChapterAudio()">下载</button>
+          </div>
+          <input type="range" id="novelSeek" min="0" max="100" value="0" oninput="seekNovelAudio(this.value)">
+        </div>
+      </div>
+
+      <!-- Right: Characters & Voices -->
+      <div class="nv-right">
+        <div class="nv-right-section">
+          <h4>LLM 配置 <button class="btn btn-xs btn-secondary" onclick="testLLMConnection()" id="llmTestBtn" style="margin-left:auto;">测试</button></h4>
+          <div class="llm-config-compact">
+            <input type="text" class="form-input" id="llmBaseUrl" placeholder="API Base URL" value="https://api.deepseek.com/v1" style="margin-bottom:4px;">
+            <div style="display:flex;gap:4px;">
+              <input type="password" class="form-input" id="llmApiKey" placeholder="API Key" style="flex:1;">
+              <input type="text" class="form-input" id="llmModel" placeholder="模型" value="deepseek-v4-flash" style="width:120px;">
+            </div>
+          </div>
+        </div>
+
+        <div class="nv-right-section" style="flex:1;overflow-y:auto;">
+          <h4>角色列表 <span id="charCount" style="font-weight:normal;">0</span>
+            <span style="margin-left:auto;display:flex;gap:3px;">
+              <button class="btn btn-xs btn-secondary" onclick="showCharacterModal()">管理</button>
+              <button class="btn btn-xs btn-secondary" onclick="designAllVoices()">AI设计</button>
+            </span>
+          </h4>
+          <div id="charList">
+            <p style="color:var(--text-muted);font-size:12px;padding:8px 0;">分析后显示角色</p>
+          </div>
+        </div>
+
+        <div class="nv-right-section">
+          <h4>预置音色库</h4>
+          <div id="voiceLibrary">
+            <div class="voice-item" onclick="selectPresetVoice('mimo_default')"><span class="vi-name">MiMo-默认</span><span class="vi-badge">中文</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('冰糖')"><span class="vi-name">冰糖</span><span class="vi-badge">女/中</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('茉莉')"><span class="vi-name">茉莉</span><span class="vi-badge">女/中</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('苏打')"><span class="vi-name">苏打</span><span class="vi-badge">男/中</span></div>
+            <div class="voice-item" onclick="selectPresetVoice('白桦')"><span class="vi-name">白桦</span><span class="vi-badge">男/中</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main><!-- /main-content -->
+
+<!-- ========== History Panel (right slide) ========== -->
+<div class="panel-overlay" id="historyPanel">
+  <div class="panel-header">
+    <h3>生成历史</h3>
+    <button class="btn-icon sm" onclick="clearHistory()">🗑</button>
+  </div>
+  <div id="historyList"></div>
+</div>
+
+</div><!-- /app-shell -->
+
+<!-- Character Modal -->
+<div class="modal-backdrop hidden" id="characterModal" onclick="if(event.target===this)closeCharacterModal()">
+  <div class="modal">
+    <div class="flex-between mb-4">
+      <h3 style="margin:0;">角色管理</h3>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-primary btn-sm" onclick="designAllVoices()">一键生成全部音色</button>
+        <button class="btn-icon sm" onclick="closeCharacterModal()" style="font-size:20px;">✕</button>
+      </div>
+    </div>
+    <div id="characterModalContent"></div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Hidden Audio -->
+<audio id="novelAudio" style="display:none;"></audio>
+
+<!-- ========== App Script ========== -->
+<script src="bundle.js?v=8"></script>
+</body>
+</html>
