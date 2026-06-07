@@ -1,75 +1,125 @@
 # MiMo TTS Studio
 
-有声书 TTS 生产工具。支持基础合成、音色设计、音色克隆、小说批量朗读。
+有声书 TTS 生产工作台 —— 从 TXT 到有声书，一站式完成。
+
+## 功能模块
+
+| 模块 | 功能 | 技术要点 |
+|------|------|----------|
+| **小说工作区** | TXT 导入 → 章节拆分 → 角色识别 → 情感分析 → 音色设计 → 批量合成 | LLM 并发分析（3章并行），8维情感向量，智能角色归类 |
+| **TTS 基础合成** | 单句/段落文本转语音 | 多预设音色、风格标签、语速/音调调节 |
+| **VoiceDesign** | 自然语言描述定制音色 | LLM 辅助生成音色描述，试听预览 |
+| **VoiceClone** | 上传音频样本克隆音色 | 音频特征提取，样本缓存复用 |
 
 ## 项目结构
 
 ```
 mimo-tts-studio/
-├── frontend/              # 纯 ES 模块化前端（无需构建）
-│   ├── index.html          # 入口页面
-│   ├── public/theme.css    # Apple 风格主题
+├── frontend/                    # 纯 ES 模块化前端
+│   ├── index.html               # 入口页面
+│   ├── bundle.js                # 构建产物（14 源文件合并）
+│   ├── build.js                 # 构建脚本（去 import/export + 语法检查）
+│   ├── public/
+│   │   ├── theme-new.css        # 深色主题 + 侧边栏（CSS 变量体系）
+│   │   └── novel.css            # 小说工作区三栏布局
 │   └── src/
-│       ├── App.js          # 主应用
-│       ├── components/     # UI 组件
-│       ├── services/       # API 服务层
-│       ├── store/          # 状态管理
-│       └── utils/          # 工具函数
-├── backend/               # Go + Gin 后端
-│   ├── main.go
+│       ├── App.js               # 主应用逻辑（~1673 行）
+│       ├── components/
+│       │   ├── AudioPlayer.js   # 音频播放器
+│       │   └── Toast.js         # 轻提示组件
+│       ├── services/
+│       │   ├── ttsApi.js        # TTS API 封装
+│       │   ├── llmApi.js        # LLM API 封装（情绪分析/音色设计）
+│       │   └── fileService.js   # 文件读写（File System Access API）
+│       ├── store/
+│       │   └── store.js         # EventTarget pub/sub 状态管理
+│       └── utils/
+│           ├── audio.js         # PCM 音频处理（WAV 解析/拼接/静音生成）
+│           ├── chapterSplit.js  # 章节拆分引擎
+│           ├── emotions.js      # 情感向量计算
+│           ├── encoding.js      # 文件编码检测
+│           ├── helpers.js       # 通用工具函数
+│           ├── jsonParser.js    # LLM JSON 响应解析
+│           └── promptTemplates.js # LLM Prompt 模板
+├── backend/                     # Go + Gin 后端
+│   ├── main.go                  # 入口
+│   ├── go.mod
 │   └── app/
-│       ├── config/         # 配置
-│       ├── models/         # 数据模型
-│       ├── routers/        # 路由
-│       ├── services/       # 业务逻辑
-│       └── storage/        # 文件存储
-└── shared/types.md         # 类型定义
+│       ├── config/config.go     # 配置管理
+│       ├── models/schemas.go    # 数据模型
+│       ├── routers/router.go    # REST API 路由
+│       ├── services/
+│       │   ├── tts_service.go   # TTS 代理
+│       │   ├── llm_service.go   # LLM 代理
+│       │   ├── audio_service.go # 音频处理
+│       │   └── project_service.go # 项目管理 CRUD
+│       └── storage/file_storage.go # 本地文件存储
+└── shared/
+    └── types.md                 # 前后端共享类型定义
 ```
 
-## 启动方式
+## 架构
 
-### 前端（直连模式，无需后端）
-直接用浏览器打开 `frontend/index.html`，或通过本地服务器：
+```
+┌──────────────────────────────────────────────┐
+│                  浏览器                      │
+│  ┌─────────┐  ┌──────────┐  ┌─────────────┐ │
+│  │ 侧边栏   │  │ 主面板    │  │ 播放器      │ │
+│  │ 导航      │  │ (Tab切换) │  │ (底部固定)  │ │
+│  └─────────┘  └──────────┘  └─────────────┘ │
+│  ┌──────────────────────────────────────────┐│
+│  │           Store (pub/sub)                ││
+│  │   连接 API 服务层 → TTS / LLM / File     ││
+│  └──────────────────────────────────────────┘│
+│  ┌──────────────────────────────────────────┐│
+│  │    直连模式         │    代理模式         ││
+│  │  前端直连 MiMo/LLM  │  前端 → Gin 后端    ││
+│  │  IndexedDB 持久化   │  后端管理 Key/数据  ││
+│  └──────────────────────────────────────────┘│
+└──────────────────────────────────────────────┘
+```
+
+## 快速开始
+
+### 前端（直连模式，开箱即用）
+
 ```bash
 cd frontend
-npx serve .        # 或 python -m http.server 8000
+python -m http.server 8081
+# 打开 http://localhost:8081
 ```
 
-### 后端（可选，代理模式）
+直连模式下，API Key 在浏览器本地存储，数据通过 File System Access API 保存到本地文件夹。
+
+### 后端（可选代理模式）
+
 ```bash
-# 1. 安装 Go（https://go.dev/dl/）
-# 2. 下载依赖并启动
 cd backend
 go mod tidy
-go run main.go     # 默认 :8080
+go run main.go
+# 默认监听 :8080
 
-# 环境变量（可选）
-PORT=8080 DEBUG=true STORAGE_DIR=./data go run main.go
+# 环境变量
+PORT=8080 STORAGE_DIR=./data DEBUG=true go run main.go
 ```
 
-### 切换直连/代理
-点击页面顶部「直连」按钮切换。代理模式时 API Key 由后端管理，前端不暴露。
+点击前端顶部「直连」按钮可切换为代理模式，后端统一管理 API Key。
 
-## 功能
+### 构建
 
-| 标签页 | 功能 | 说明 |
-|--------|------|------|
-| TTS 基础合成 | 文本→语音 | 多语音角色、风格标签、音频格式 |
-| VoiceDesign | 音色设计 | 自然语言描述定制音色，AI 辅助 |
-| VoiceClone | 音色克隆 | 上传音频样本，克隆音色 |
-| 小说朗读 | 整本小说→有声书 | TXT导入→章节拆分→LLM情绪分析→音色设计→批量合成 |
+```bash
+cd frontend
+node build.js    # 合并 14 个源文件 → bundle.js
+```
 
-## 技术依赖
+## 技术栈
 
-### 前端
-- **浏览器 API**：File System Access API（Chrome/Edge）、IndexedDB、localStorage
-- **外部 CDN**：JSZip（导出打包）
+**前端**：Vanilla JS（纯 ES 模块） · CSS Variables 主题 · IndexedDB · File System Access API · Web Audio API
 
-### 后端
-- **Go 1.21+** + Gin + CORS
-- **API**：MiMo TTS（OpenAI 兼容接口）、DeepSeek/OpenAI（LLM）
+**后端**：Go 1.21+ · Gin · CORS
 
-## 数据存储
+**AI 服务**：MiMo TTS（OpenAI 兼容接口） · DeepSeek / OpenAI（LLM 情绪分析与音色设计）
 
-- **直连模式**：数据存于用户选择的本地文件夹（`showDirectoryPicker`），句柄存 IndexedDB
-- **代理模式**：数据存于后端 `data/` 目录
+## 浏览器兼容性
+
+Chrome / Edge 120+（File System Access API 要求）。Firefox / Safari 对本地文件访问支持有限，建议使用 Chromium 系浏览器。
