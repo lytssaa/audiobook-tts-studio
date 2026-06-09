@@ -124,6 +124,11 @@ function insertTTSStyleTag(tag) {
     el.value = prefix + el.value;
   }
   updateCharCount(el, 'ttsCharCount');
+  // 同步更新标签高亮
+  document.querySelectorAll('.tag-container .tag').forEach(btn => {
+    const isActive = btn.textContent.trim() === tag;
+    btn.classList.toggle('accent', isActive);
+  });
 }
 
 async function generateTTS() {
