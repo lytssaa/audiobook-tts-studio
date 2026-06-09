@@ -1586,7 +1586,7 @@ function renderSavedVoices() {
   if (!el) return;
   const voices = appStore.getState().savedVoices;
   if (!voices.length) {
-    el.innerHTML = '<p style="color:var(--text2);font-size:13px;">暂无保存的音色</p>';
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">暂无保存的音色</p>';
     return;
   }
   el.innerHTML = voices.map((v, i) => `
@@ -1737,7 +1737,7 @@ function renderHistory() {
   if (!el) return;
   const list = appStore.getState().history;
   if (!list.length) {
-    el.innerHTML = '<p style="padding:16px;color:var(--text2);font-size:13px;">暂无历史记录</p>';
+    el.innerHTML = '<p style="padding:16px;color:var(--text-muted);font-size:13px;">暂无历史记录</p>';
     return;
   }
   el.innerHTML = list.map(h => `
@@ -1782,7 +1782,7 @@ function renderProjectList() {
   const list = getProjectList();
   list.sort((a, b) => (b.time || 0) - (a.time || 0));
   if (!list.length) {
-    el.innerHTML = '<p style="color:var(--text2);font-size:12px;padding:8px 0;">暂无项目，点击新建项目或拖拽 TXT 开始</p>';
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:12px;padding:8px 0;">暂无项目，点击新建项目或拖拽 TXT 开始</p>';
     return;
   }
   el.innerHTML = list.map(p => {
@@ -1790,7 +1790,7 @@ function renderProjectList() {
     const ts = d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return `<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;">
       <span style="flex:1;font-weight:500;cursor:pointer;color:var(--accent);" onclick="window.loadProject('${esc(p.name)}')">${esc(p.name)}</span>
-      <span style="font-size:11px;color:var(--text2);">${ts}</span>
+      <span style="font-size:11px;color:var(--text-muted);">${ts}</span>
       <button class="btn-icon" onclick="event.stopPropagation();window.deleteProject('${esc(p.name)}')" style="font-size:14px;color:var(--danger);">&#128465;</button>
     </div>`;
   }).join('');
@@ -2059,11 +2059,11 @@ function renderScriptCards(ch) {
     const rawPreview = esc(ch.content.slice(0, 5000)) + (ch.content.length > 5000 ? '\n\n... (共' + ch.content.length + '字，已截断)' : '');
     area.innerHTML = `<div style="padding:16px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <p style="font-size:14px;font-weight:600;">${esc(ch.title)} <span style="font-weight:normal;color:var(--text2);font-size:12px;">${ch.content.length} 字</span></p>
-        <span style="font-size:12px;color:var(--text2);">原始文本预览</span>
+        <p style="font-size:14px;font-weight:600;">${esc(ch.title)} <span style="font-weight:normal;color:var(--text-muted);font-size:12px;">${ch.content.length} 字</span></p>
+        <span style="font-size:12px;color:var(--text-muted);">原始文本预览</span>
       </div>
       <pre style="font-size:13px;line-height:1.8;white-space:pre-wrap;word-break:break-all;color:var(--text);background:var(--bg);padding:16px;border-radius:8px;border:1px solid var(--border);max-height:70vh;overflow-y:auto;">${rawPreview}</pre>
-      <p style="font-size:12px;color:var(--text2);margin-top:12px;text-align:center;">请在左栏勾选章节后点击「情绪分析」生成脚本</p></div>`;
+      <p style="font-size:12px;color:var(--text-muted);margin-top:12px;text-align:center;">请在左栏勾选章节后点击「情绪分析」生成脚本</p></div>`;
     if (filterEl) filterEl.innerHTML = '<option value="">全部</option>';
     return;
   }
@@ -2096,12 +2096,12 @@ function renderScriptCards(ch) {
           <span style="font-size:10px;padding:1px 4px;border-radius:3px;background:${isNarrator ? 'var(--tag-bg)' : 'rgba(0,113,227,.12)'};font-weight:normal;">${esc(vLabel)}</span>
         </div>
         <div class="sc-content" ondblclick="window.startEditContent(this,${idx})" title="双击编辑">${esc(item.content)}</div>
-        <div class="sc-controls">
-          <span style="font-size:11px;color:var(--text2);">情绪</span>
+        <div class="sc-ctrls">
+          <span style="font-size:11px;color:var(--text-muted);">情绪</span>
           <select onchange="window.updateScriptItem(${idx},'speaker_emo',this.value)" style="max-width:80px;">${emoOpts}</select>
-          <span style="font-size:11px;color:var(--text2);margin-left:4px;">停顿</span>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:4px;">停顿</span>
           <input type="number" value="${item.delay || 500}" min="0" max="5000" step="100" onchange="window.updateScriptItem(${idx},'delay',+this.value)" style="width:56px;">
-          <span style="font-size:11px;color:var(--text2);">ms</span>
+          <span style="font-size:11px;color:var(--text-muted);">ms</span>
         </div>
       </div>
       <div class="sc-actions">
@@ -2111,7 +2111,7 @@ function renderScriptCards(ch) {
   });
 
   if (f) {
-    html = `<div style="font-size:12px;color:var(--text2);padding:4px 0;margin-bottom:4px;">显示${esc(f)}共 ${visibleCount} 行 <a href="#" onclick="window.filterBySpeaker('');return false;" style="color:var(--accent);">清除筛选</a></div>` + html;
+    html = `<div style="font-size:12px;color:var(--text-muted);padding:4px 0;margin-bottom:4px;">显示${esc(f)}共 ${visibleCount} 行 <a href="#" onclick="window.filterBySpeaker('');return false;" style="color:var(--accent);">清除筛选</a></div>` + html;
   }
   area.innerHTML = html;
 }
@@ -2153,11 +2153,11 @@ function updateCharList() {
   const chars = Object.values(projectStore.get('globalCharacters'));
   if (countEl) countEl.textContent = chars.length;
   if (!chars.length) {
-    el.innerHTML = '<p style="color:var(--text2);font-size:12px;">分析后显示角色</p>';
+    el.innerHTML = '<p style="color:var(--text-muted);font-size:12px;">分析后显示角色</p>';
     return;
   }
   el.innerHTML = chars.map(c => {
-    const tc = c.role_tag === '重要角色' ? 'var(--accent)' : 'var(--text2)';
+    const tc = c.role_tag === '重要角色' ? 'var(--accent)' : 'var(--text-muted)';
     const vh = c.voiceDesignPrompt
       ? `<div class="cc-voice has-design" title="${esc(c.voiceDesignPrompt)}">VD: ${esc(c.voiceDesignPrompt.slice(0, 50))}${c.voiceDesignPrompt.length > 50 ? '...' : ''}</div>`
       : `<div class="cc-voice" style="color:var(--danger);border-left:2px solid var(--danger);">待设计音色 <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();window.designSingleVoice('${esc(c.name)}')" style="font-size:10px;padding:1px 5px;margin-left:4px;">设计</button></div>`;
@@ -2769,7 +2769,7 @@ function showCharacterModal() {
   const content = document.getElementById('characterModalContent');
   const chars = Object.values(projectStore.get('globalCharacters'));
   if (!chars.length) {
-    content.innerHTML = '<p style="color:var(--text2);text-align:center;padding:20px;">还没有角色数据，请先进行情绪分析</p>';
+    content.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:20px;">还没有角色数据，请先进行情绪分析</p>';
   } else {
     content.innerHTML = chars.map(c => {
       const voiceInfo = c.voiceDesignPrompt
@@ -2785,18 +2785,18 @@ function showCharacterModal() {
            </div>`
         : `<div style="margin-top:4px;">
             <button class="btn btn-sm btn-primary" onclick="window.designSingleVoice('${esc(c.name)}')">生成音色提示词</button>
-            <span style="font-size:11px;color:var(--text2);margin-left:8px;">（AI 根据角色信息自动设计）</span>
+            <span style="font-size:11px;color:var(--text-muted);margin-left:8px;">（AI 根据角色信息自动设计）</span>
            </div>`;
-      const tc = c.role_tag === '重要角色' ? 'var(--accent)' : 'var(--text2)';
+      const tc = c.role_tag === '重要角色' ? 'var(--accent)' : 'var(--text-muted)';
       return `<div style="padding:12px 0;border-bottom:1px solid var(--border);">
         <div style="display:flex;align-items:center;gap:8px;">
           <b style="font-size:14px;">${esc(c.name)}</b>
           <span style="font-size:11px;color:${tc};">${esc(c.role_tag)}</span>
-          <span style="font-size:12px;color:var(--text2);">${esc(c.gender)} · ${esc(c.age)}</span>
-          <span style="font-size:11px;color:var(--text2);margin-left:auto;">出现于 ${c.chapters.length} 章</span>
+          <span style="font-size:12px;color:var(--text-muted);">${esc(c.gender)} · ${esc(c.age)}</span>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:auto;">出现于 ${c.chapters.length} 章</span>
         </div>
-        <div style="font-size:12px;color:var(--text2);margin-top:4px;">性格: ${esc(c.personality)}</div>
-        <div style="font-size:12px;color:var(--text2);">音色: ${esc(c.timbre)}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">性格: ${esc(c.personality)}</div>
+        <div style="font-size:12px;color:var(--text-muted);">音色: ${esc(c.timbre)}</div>
         ${voiceInfo}
       </div>`;
     }).join('');
