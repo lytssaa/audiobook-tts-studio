@@ -742,11 +742,11 @@ function renderScriptCards(ch) {
         </div>
         <div class="sc-content" ondblclick="window.startEditContent(this,${idx})" title="双击编辑">${esc(item.content)}</div>
         <div class="sc-ctrls">
-          <span style="font-size:11px;color:var(--text-muted);">情绪</span>
-          <select onchange="window.updateScriptItem(${idx},'speaker_emo',this.value)" style="max-width:80px;">${emoOpts}</select>
-          <span style="font-size:11px;color:var(--text-muted);margin-left:4px;">停顿</span>
-          <input type="number" value="${item.delay || 500}" min="0" max="5000" step="100" onchange="window.updateScriptItem(${idx},'delay',+this.value)" style="width:56px;">
-          <span style="font-size:11px;color:var(--text-muted);">ms</span>
+          <span class="sc-label">情绪</span>
+          <select onchange="window.updateScriptItem(${idx},'speaker_emo',this.value)">${emoOpts}</select>
+          <span class="sc-label">停顿</span>
+          <input type="number" value="${item.delay || 500}" min="0" max="5000" step="100" onchange="window.updateScriptItem(${idx},'delay',+this.value)">
+          <span class="sc-label">ms</span>
         </div>
       </div>
       <div class="sc-actions">

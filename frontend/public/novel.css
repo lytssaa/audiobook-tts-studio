@@ -229,18 +229,30 @@
   margin-top: 6px;
   flex-wrap: wrap;
 }
-.script-card .sc-ctrls label { font-size: 10px; color: var(--text-muted); }
+.script-card .sc-ctrls label,
+.script-card .sc-ctrls .sc-label { font-size: 11px; color: var(--text-muted); white-space: nowrap; }
 .script-card .sc-ctrls select,
 .script-card .sc-ctrls input {
-  font-size: 11px;
-  padding: 3px 6px;
+  font-size: 12px;
+  padding: 4px 8px;
   border: 1px solid var(--border);
-  border-radius: 4px;
+  border-radius: 6px;
   background: var(--bg-input);
   color: var(--text-primary);
+  outline: none;
+  transition: border-color var(--transition);
 }
-.script-card .sc-ctrls select { max-width: 72px; }
-.script-card .sc-ctrls input[type="number"] { width: 52px; }
+.script-card .sc-ctrls select:focus,
+.script-card .sc-ctrls input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-subtle);
+}
+.script-card .sc-ctrls select option {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+}
+.script-card .sc-ctrls select { max-width: 80px; }
+.script-card .sc-ctrls input[type="number"] { width: 60px; }
 
 .script-card .sc-actions-side {
   display: flex;
